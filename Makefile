@@ -40,10 +40,7 @@ CODEX_PROMPT_DIR   := $(HOME)/.codex/prompts
 OPENCODE_CMD_DIR   := $(HOME)/.config/opencode/command
 BIN_DIR            := $(HOME)/bin
 
-install: install-claude install-bin
-	@echo "OK: Claude Code skill + oc-edit installed. See 'make install-all' for every harness."
-
-install-all: install-claude install-codex install-opencode install-bin
+install: install-claude install-codex install-opencode install-bin
 	@echo "OK: installed for Claude Code, Codex, and opencode."
 
 install-bin:

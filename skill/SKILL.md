@@ -8,8 +8,7 @@ description: Delegate a file edit to opencode's CLI via the oc-edit wrapper — 
 STATUS: MEASURED. The 2026-08-15 matrix (8 runs, see RESULTS.md and
 `results/` in this repository) scored the free tier 4/4 correct at
 7-15s/task; the paid tier also 4/4 but 5-7x slower (38-70s). Routing below
-is validated. Install with `make install` (Claude Code + ~/bin) or
-`make install-all` (every harness).
+is validated. Install with `make install` (every harness).
 
 ## Kill switch
 
