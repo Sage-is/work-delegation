@@ -58,20 +58,40 @@ Make only the requested change, matching the surrounding style exactly."
 
 # Fingerprint worktree content (tracked diff + hash of untracked/modified files)
 # so edits to not-yet-tracked files are not misread as silent no-ops.
-fingerprint() {
-  git -C "$dir" diff 2>/dev/null | shasum -a 256
-  git -C "$dir" ls-files -om --exclude-standard -z 2>/dev/null \
-    | xargs -0 shasum -a 256 2>/dev/null | shasum -a 256
-}
+fingerprint() (
+  cd "$dir" || return 0
+  {
+    git diff 2>/dev/null
+    git ls-files -om --exclude-standard -z 2>/dev/null \
+      | xargs -0 shasum -a 256 2>/dev/null
+  } | shasum -a 256 || true
+)
 before=$(fingerprint)
 
-out=$(opencode run "$preamble
+# Gateway stall watchdog: the opencode gateway intermittently queues a request
+# forever (per-model congestion). Cap each attempt, pause, retry once, then
+# fail fast with exit 6 so the caller can fall back to another model or inline.
+OC_TIMEOUT=${OC_TIMEOUT:-120}
+run_once() {
+  timeout "$OC_TIMEOUT" opencode run "$preamble
 
-$instruction" --dir "$dir" -m "$model" --auto --format json ${file_args[@]+"${file_args[@]}"} 2>&1) || {
+$instruction" --dir "$dir" -m "$model" --auto --format json ${file_args[@]+"${file_args[@]}"} 2>&1
+}
+rc=0; out=$(run_once) || rc=$?
+if [ "$rc" -eq 124 ]; then
+  echo "oc-edit: no response in ${OC_TIMEOUT}s; retrying once after 15s pause" >&2
+  sleep 15
+  rc=0; out=$(run_once) || rc=$?
+  if [ "$rc" -eq 124 ]; then
+    echo "oc-edit: gateway stall on $model (2 attempts); pick another model or edit inline" >&2
+    exit 6
+  fi
+fi
+if [ "$rc" -ne 0 ]; then
   echo "oc-edit: opencode run failed" >&2
   printf '%s\n' "$out" | tail -20 >&2
   exit 1
-}
+fi
 
 session=$(printf '%s' "$out" | grep -o '"sessionID":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
 echo "session: ${session:-unknown}"
