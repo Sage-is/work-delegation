@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# oc-stall-verdict — the one executable definition of the stall oracle
+# (docs/stall-investigation.md): run a command, then classify every opencode
+# invocation that logged during it, grouped by the per-line run= ID.
+#   <runid> OK     bootstrap reached "created id=ses_" (session exists)
+#   <runid> STALL  bootstrap logged init but never created a session
+#   UNKNOWN        no init line appeared at all
+# Count stalls per WRAPPER INVOCATION (oc-edit exit 6), never per run ID:
+# the wrapper's exit-124 retry can emit two stalled run IDs for one call.
+set -uo pipefail
+
+LOG="${OC_LOG:-$HOME/.local/share/opencode/log/opencode.log}"
+off=$(wc -c < "$LOG" 2>/dev/null | tr -d ' ' || echo 0)
+echo "census: live opencode PIDs: $(pgrep -x opencode 2>/dev/null | tr '\n' ' ')" >&2
+
+"$@"
+rc=$?
+
+sleep 1
+tail -c +"$((off + 1))" "$LOG" 2>/dev/null | awk '
+  match($0, /run=[0-9a-f]+/) {
+    id = substr($0, RSTART + 4, RLENGTH - 4)
+    if ($0 ~ /message=init/) init[id] = 1
+    if ($0 ~ /message=created id=ses_/) ses[id] = 1
+  }
+  END {
+    n = 0
+    for (id in init) { n++; print id, (id in ses ? "OK" : "STALL") }
+    if (n == 0) print "UNKNOWN"
+  }'
+exit "$rc"

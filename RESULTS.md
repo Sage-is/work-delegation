@@ -59,6 +59,36 @@ This repository's own prose was built through the wrapper. Findings:
   `git diff` misses edits to files that were never committed, which produced
   a false "silent no-op" on a real edit.
 
+## Field notes — 2026-08-16 afternoon (stall investigation + hardening)
+
+Full detail in `docs/stall-investigation.md`. The short version:
+
+- **The unsafe orphan reaper is retired.** A name-based `pgrep`/PPID==1 kill
+  written the previous session was reverted, uninstalled from every harness,
+  and can no longer ship: `make install` now refuses any wrapper containing
+  `pgrep`/`pkill`/`killall` (`guard-no-name-kills`). It had already cost the
+  user a live TUI session, and T1 proved its premise wrong: opencode 1.18 is
+  single-process — SIGTERM leaves no orphan to reap.
+- **~40-run battery, zero stalls** across 1-4-way concurrency, plugin
+  on/off, three credential families, and 10 spaced calls — all with
+  one-line briefs. Then two live stalls hit during real re-delegation with
+  multi-KB briefs. The morning "gateway weather" note (trivial fast,
+  substantive stalls) was closer to the truth than its dismissal: stalls
+  come in short self-clearing windows at the `init`→session-create
+  bootstrap step and correlate with payload size, not with model tier,
+  plugin, directory, or local process contention.
+- **Wrapper hardening shipped:** machine-wide mkdir mutex (one delegation at
+  a time, exit 7 on busy), `--pure` (the antigravity auth plugin rewrote its
+  state file on 5/5 non-pure bootstraps; every routed model family works
+  without it), and `skill/scripts/oc-stall-verdict` — the stall oracle as
+  one script instead of per-test prose. Acceptance: 10/10 sequential edits
+  zero stalls, 3-way burst serialized cleanly in 24s, zero leftover
+  processes, lock cleaned on exit.
+- **The failure mode works in production.** Both live stalls ended in exit 6
+  with one clear line after capped attempts, no hang, no leftovers; the same
+  briefs succeeded minutes later. On exit 6 or 7: edit inline or wait
+  minutes — never retry straight into the window.
+
 ## Adoption menu (user decision — nothing below is active yet)
 
 1. Promote `scripts/oc-edit` to `~/bin/oc-edit` — enables on-demand + skill use.

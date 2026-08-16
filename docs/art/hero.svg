@@ -1,0 +1,810 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1280 520"
+   role="img"
+   aria-label="Art Deco poster: a great ocean liner towed by a small tugboat. Caption: expensive models plan and judge, cheap models type."
+   version="1.1"
+   id="svg64"
+   sodipodi:docname="hero.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview64"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.1240093"
+     inkscape:cx="826.95046"
+     inkscape:cy="339.85484"
+     inkscape:window-width="2560"
+     inkscape:window-height="1381"
+     inkscape:window-x="0"
+     inkscape:window-y="31"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g43" />
+  <defs
+     id="defs5">
+    <linearGradient
+       id="linearGradient86"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#ffc650;stop-opacity:1;"
+         offset="0.66224927"
+         id="stop86" />
+      <stop
+         style="stop-color:#f0daa7;stop-opacity:0.83152175;"
+         offset="1"
+         id="stop87" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient82"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:1;"
+         offset="0"
+         id="stop83" />
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:0;"
+         offset="1"
+         id="stop84" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient80"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:1;"
+         offset="0"
+         id="stop81" />
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:0;"
+         offset="1"
+         id="stop82" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient78"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:1;"
+         offset="0"
+         id="stop79" />
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:0;"
+         offset="1"
+         id="stop80" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient76"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#f4e9d0;stop-opacity:1;"
+         offset="0"
+         id="stop77" />
+      <stop
+         style="stop-color:#f4e9d0;stop-opacity:0;"
+         offset="1"
+         id="stop78" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient74"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#f4e9d0;stop-opacity:1;"
+         offset="0"
+         id="stop75" />
+      <stop
+         style="stop-color:#f4e9d0;stop-opacity:0;"
+         offset="1"
+         id="stop76" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient72"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:1;"
+         offset="0"
+         id="stop73" />
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:0;"
+         offset="1"
+         id="stop74" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient70"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:1;"
+         offset="0"
+         id="stop71" />
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:0;"
+         offset="1"
+         id="stop72" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient68"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:1;"
+         offset="0"
+         id="stop69" />
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:0;"
+         offset="1"
+         id="stop70" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient66"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:1;"
+         offset="0"
+         id="stop67" />
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:0;"
+         offset="1"
+         id="stop68" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient65"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:1;"
+         offset="0"
+         id="stop65" />
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:0;"
+         offset="1"
+         id="stop66" />
+    </linearGradient>
+    <linearGradient
+       id="sky"
+       x1="0"
+       y1="0"
+       x2="0"
+       y2="1">
+      <stop
+         offset="0"
+         stop-color="#f6ead0"
+         id="stop1" />
+      <stop
+         offset="0.55"
+         stop-color="#f0dcb4"
+         id="stop2" />
+      <stop
+         offset="1"
+         stop-color="#e7c98f"
+         id="stop3" />
+    </linearGradient>
+    <linearGradient
+       id="sea"
+       x1="0"
+       y1="0"
+       x2="0"
+       y2="1">
+      <stop
+         offset="0"
+         stop-color="#1d4e63"
+         id="stop4" />
+      <stop
+         offset="1"
+         stop-color="#0f2c40"
+         id="stop5" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient65"
+       id="radialGradient66"
+       cx="459"
+       cy="178"
+       fx="459"
+       fy="178"
+       r="22"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-19.931744,3.5173666)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient66"
+       id="radialGradient68"
+       cx="420"
+       cy="188"
+       fx="420"
+       fy="188"
+       r="20"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-17.586833,-1.1724555)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient68"
+       id="radialGradient70"
+       cx="386"
+       cy="202"
+       fx="386"
+       fy="202"
+       r="17"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-11.724556,-1.7586833)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient70"
+       id="radialGradient72"
+       cx="358"
+       cy="218"
+       fx="358"
+       fy="218"
+       r="14"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-7.0347332,1.7586833)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient72"
+       id="radialGradient74"
+       cx="336"
+       cy="234"
+       fx="336"
+       fy="234"
+       r="11"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient74"
+       id="radialGradient76"
+       cx="247.34612"
+       cy="358.18404"
+       fx="247.34612"
+       fy="358.18404"
+       r="15"
+       gradientTransform="matrix(1,0,0,0.31111111,0,246.749)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient76"
+       id="radialGradient78"
+       cx="390"
+       cy="354.75"
+       fx="390"
+       fy="354.75"
+       r="14"
+       gradientTransform="matrix(1,0,0,0.26785714,-26.966477,262.65882)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient76"
+       id="radialGradient78-1"
+       cx="390"
+       cy="354.75"
+       fx="390"
+       fy="354.75"
+       r="14"
+       gradientTransform="matrix(1,0,0,0.26785714,-4.9670796,263.66063)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient78"
+       id="radialGradient80"
+       cx="978"
+       cy="144"
+       fx="978"
+       fy="144"
+       r="9"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient80"
+       id="radialGradient82"
+       cx="878"
+       cy="142"
+       fx="878"
+       fy="142"
+       r="8"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient82"
+       id="radialGradient84"
+       cx="778"
+       cy="144"
+       fx="778"
+       fy="144"
+       r="9"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient87"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <!-- ground -->
+  <rect
+     width="1280"
+     height="520"
+     fill="#0f2c40"
+     id="rect5"
+     inkscape:label="Blue BG" />
+  <rect
+     x="24"
+     y="24"
+     width="1232"
+     height="472"
+     fill="url(#sky)"
+     id="rect6"
+     inkscape:label="Sunny Sky" />
+  <!-- sunburst -->
+  <g
+     transform="translate(640,330)"
+     id="g16"
+     inkscape:label="Sun">
+    <g
+       fill="#e8b64c"
+       opacity="0.28"
+       id="g15"
+       inkscape:label="Sun Rays"
+       transform="scale(1.0984994,1)"
+       style="fill:url(#radialGradient87)">
+      <path
+         d="m 0,0 -560,-258 v 40 z"
+         id="path6"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 -480,-306 h 40 z"
+         id="path7"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 -330,-306 h 46 z"
+         id="path8"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 -180,-306 h 50 z"
+         id="path9"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="M 0,0 -40,-306 H 14 Z"
+         id="path10"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 104,-306 h 52 z"
+         id="path11"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 248,-306 h 48 z"
+         id="path12"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 392,-306 h 44 z"
+         id="path13"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 536,-306 24,24 z"
+         id="path14"
+         style="fill:url(#radialGradient87)" />
+      <path
+         d="m 0,0 560,-196 v 40 z"
+         id="path15"
+         style="fill:url(#radialGradient87)" />
+    </g>
+    <circle
+       cx="0"
+       cy="-36"
+       r="86"
+       fill="#e8b64c"
+       id="circle15" />
+    <circle
+       cx="0"
+       cy="-36"
+       r="70"
+       fill="#f0c766"
+       id="circle16" />
+  </g>
+  <!-- sea bands -->
+  <rect
+     x="24"
+     y="330"
+     width="1232"
+     height="166"
+     fill="url(#sea)"
+     id="rect16"
+     inkscape:label="Sea"
+     style="display:inline" />
+  <path
+     d="M24 330 Q86 318 148 330 T272 330 T396 330 T520 330 T644 330 T768 330 T892 330 T1016 330 T1140 330 T1256 330 L1256 344 L24 344 Z"
+     fill="#2a6178"
+     id="path16" />
+  <path
+     d="M24 368 Q86 358 148 368 T272 368 T396 368 T520 368 T644 368 T768 368 T892 368 T1016 368 T1140 368 T1256 368 L1256 378 L24 378 Z"
+     fill="#24566d"
+     opacity="0.9"
+     id="path17" />
+  <path
+     d="M24 408 Q104 398 184 408 T344 408 T504 408 T664 408 T824 408 T984 408 T1144 408 T1256 408 L1256 418 L24 418 Z"
+     fill="#1c4a60"
+     opacity="0.9"
+     id="path18" />
+  <!-- towline: tug to liner -->
+  <path
+     d="m 370.97468,321.35277 c 50.57578,-4.82047 95.21079,-4.30915 144.45713,-12.53551"
+     fill="none"
+     stroke="#12293b"
+     stroke-width="4"
+     id="path19"
+     inkscape:label="Cable"
+     sodipodi:nodetypes="cc" />
+  <!-- the liner: large, stately, aft of the tug -->
+  <g
+     id="g43">
+    <rect
+       x="620"
+       y="268"
+       width="440"
+       height="34"
+       fill="#f4e9d0"
+       id="rect22" />
+    <!-- hull -->
+    <path
+       d="m 505,302.99136 55,63.83861 h 560 l 60,-63.83861 q -330,-19.64265 -675,0 z"
+       fill="#152f42"
+       id="path20"
+       style="stroke-width:1.108" />
+    <path
+       d="m 539.88175,344.73199 h 600.02845 l 13.8621,-19.64265 H 528 Z"
+       fill="#0e2233"
+       id="path21"
+       style="stroke-width:1.10253" />
+    <!-- boot stripe -->
+    <path
+       d="m 520.9676,322.63401 h 640.3958 l 7.9676,-9.82133 q -320.69588,-17.18731 -656.331,0 z"
+       fill="#c8502e"
+       id="path22"
+       style="stroke-width:1.10575" />
+    <!-- superstructure -->
+    <rect
+       x="660"
+       y="242"
+       width="360"
+       height="28"
+       fill="#f4e9d0"
+       id="rect23" />
+    <rect
+       x="700"
+       y="220"
+       width="301.35214"
+       height="24"
+       fill="#e9dcbd"
+       id="rect24"
+       style="stroke-width:1.03743" />
+    <!-- portholes -->
+    <g
+       fill="#152f42"
+       id="g35">
+      <circle
+         cx="656"
+         cy="285"
+         r="4"
+         id="circle24" />
+      <circle
+         cx="688"
+         cy="285"
+         r="4"
+         id="circle25" />
+      <circle
+         cx="720"
+         cy="285"
+         r="4"
+         id="circle26" />
+      <circle
+         cx="752"
+         cy="285"
+         r="4"
+         id="circle27" />
+      <circle
+         cx="784"
+         cy="285"
+         r="4"
+         id="circle28" />
+      <circle
+         cx="816"
+         cy="285"
+         r="4"
+         id="circle29" />
+      <circle
+         cx="848"
+         cy="285"
+         r="4"
+         id="circle30" />
+      <circle
+         cx="880"
+         cy="285"
+         r="4"
+         id="circle31" />
+      <circle
+         cx="912"
+         cy="285"
+         r="4"
+         id="circle32" />
+      <circle
+         cx="944"
+         cy="285"
+         r="4"
+         id="circle33" />
+      <circle
+         cx="976"
+         cy="285"
+         r="4"
+         id="circle34" />
+      <circle
+         cx="1008"
+         cy="285"
+         r="4"
+         id="circle35" />
+    </g>
+    <!-- funnels, raked aft (bow is left) -->
+    <g
+       id="g40">
+      <path
+         d="M742 220 L786 220 L794 168 L750 168 Z"
+         fill="#c8502e"
+         id="path35" />
+      <path
+         d="M747 168 L797 168 L799 156 L749 156 Z"
+         fill="#12293b"
+         id="path36" />
+      <path
+         d="M842 220 L886 220 L894 168 L850 168 Z"
+         fill="#c8502e"
+         id="path37" />
+      <path
+         d="M847 168 L897 168 L899 156 L849 156 Z"
+         fill="#12293b"
+         id="path38" />
+      <path
+         d="M942 220 L986 220 L994 168 L950 168 Z"
+         fill="#c8502e"
+         id="path39" />
+      <path
+         d="M947 168 L997 168 L999 156 L949 156 Z"
+         fill="#12293b"
+         id="path40" />
+    </g>
+    <!-- idle wisps: the liner is not steaming, it is being towed -->
+    <g
+       fill="#d9cdb0"
+       opacity="0.6"
+       id="g42"
+       inkscape:label="smoke">
+      <circle
+         cx="778"
+         cy="144"
+         r="9"
+         id="circle40"
+         style="fill:url(#radialGradient84)" />
+      <circle
+         cx="878"
+         cy="142"
+         r="8"
+         id="circle41"
+         style="fill:url(#radialGradient82)" />
+      <circle
+         cx="978"
+         cy="144"
+         r="9"
+         id="circle42"
+         style="fill:url(#radialGradient80)" />
+    </g>
+    <!-- masts -->
+  </g>
+  <!-- the tug: small, stout, hard at work -->
+  <g
+     id="g53"
+     inkscape:label="Tug Boat">
+    <path
+       d="m 262.34612,357.51737 q -16,-8 -30,0 16,8 30,4 z"
+       fill="#f4e9d0"
+       opacity="0.85"
+       id="path52"
+       inkscape:label="Front Splash"
+       style="fill:url(#radialGradient76)" />
+    <path
+       d="m 349.03352,356.93114 q 16,-6 28,0 -14,6 -28,4 z"
+       fill="#f4e9d0"
+       opacity="0.6"
+       id="path53"
+       inkscape:label="Back splash"
+       style="fill:url(#radialGradient78)" />
+    <path
+       d="m 371.03292,357.93295 q 16,-6 28,0 -14,6 -28,4 z"
+       fill="#f4e9d0"
+       opacity="0.6"
+       id="path53-5"
+       inkscape:label="Back splash"
+       style="fill:url(#radialGradient78-1)" />
+    <path
+       d="m 232,319.19984 20,40.18101 h 104 l 20,-40.18101 c -49.17246,-1.57865 -95.41377,-1.57865 -144,0 z"
+       fill="#1a3a50"
+       id="path44"
+       style="stroke-width:1.05647"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       d="m 244,343.75491 h 120 l 6,-11.1614 H 238 Z"
+       fill="#c8502e"
+       id="path45"
+       style="stroke-width:1.05647" />
+    <rect
+       x="267.20657"
+       y="292"
+       width="56"
+       height="26"
+       fill="#f4e9d0"
+       id="rect45" />
+    <rect
+       x="281.20657"
+       y="298"
+       width="12"
+       height="9"
+       fill="#1a3a50"
+       id="rect46" />
+    <rect
+       x="303.20657"
+       y="298"
+       width="12"
+       height="9"
+       fill="#1a3a50"
+       id="rect47" />
+    <!-- funnel, hard raked aft: full steam ahead (bow is left) -->
+    <path
+       d="m 274.30957,292.58623 h 22 l 2.52057,-26.62469 h -20 z"
+       fill="#c8502e"
+       id="path47"
+       style="stroke-width:0.837048" />
+    <path
+       d="m 275.83014,265.96154 h 26 l 0.92735,-6.30585 h -26 z"
+       fill="#12293b"
+       id="path48"
+       style="stroke-width:0.837048" />
+    <!-- working smoke: big, trailing aft toward the liner -->
+    <g
+       fill="#3d5a6e"
+       opacity="0.85"
+       id="g52"
+       inkscape:label="Smoke"
+       transform="translate(-43.380855,15.241922)">
+      <circle
+         cx="336"
+         cy="234"
+         r="11"
+         id="circle48"
+         style="fill:url(#radialGradient74)" />
+      <circle
+         cx="350.96527"
+         cy="219.75868"
+         r="14"
+         id="circle49"
+         style="fill:url(#radialGradient72)" />
+      <circle
+         cx="374.27542"
+         cy="200.24132"
+         r="17"
+         id="circle50"
+         style="fill:url(#radialGradient70)" />
+      <circle
+         cx="402.41318"
+         cy="186.82755"
+         r="20"
+         id="circle51"
+         style="fill:url(#radialGradient68)" />
+      <circle
+         cx="439.06827"
+         cy="181.51736"
+         r="22"
+         id="circle52"
+         style="fill:url(#radialGradient66)" />
+    </g>
+    <!-- bow wave: the tug makes the wake -->
+  </g>
+  <!-- title block -->
+  <g
+     text-anchor="middle"
+     font-family="Georgia, 'Times New Roman', serif"
+     id="g55"
+     inkscape:label="Text">
+    <text
+       x="640"
+       y="452"
+       fill="#f4e9d0"
+       font-size="44"
+       letter-spacing="14"
+       font-weight="bold"
+       id="text53">WORK DELEGATION</text>
+    <g
+       fill="#d9a441"
+       font-size="15"
+       letter-spacing="5"
+       id="g54">
+      <text
+         x="640"
+         y="480"
+         id="text54">EXPENSIVE MODELS PLAN AND JUDGE · CHEAP MODELS TUG</text>
+    </g>
+  </g>
+  <!-- deco frame -->
+  <g
+     fill="none"
+     stroke="#d9a441"
+     id="g56"
+     inkscape:label="Border Foil"
+     transform="matrix(1.0172557,0,0,1.0450402,-11.043623,-11.710452)">
+    <rect
+       x="24"
+       y="24"
+       width="1232"
+       height="472"
+       stroke-width="3"
+       id="rect55" />
+    <rect
+       x="34"
+       y="34"
+       width="1212"
+       height="452"
+       stroke-width="1"
+       id="rect56" />
+    <rect
+       x="24"
+       y="24"
+       width="26"
+       height="4"
+       id="rect57" />
+    <rect
+       x="24"
+       y="24"
+       width="4"
+       height="26"
+       id="rect58" />
+    <rect
+       x="1230"
+       y="24"
+       width="26"
+       height="4"
+       id="rect59" />
+    <rect
+       x="1252"
+       y="24"
+       width="4"
+       height="26"
+       id="rect60" />
+    <rect
+       x="24"
+       y="492"
+       width="26"
+       height="4"
+       id="rect61" />
+    <rect
+       x="24"
+       y="470"
+       width="4"
+       height="26"
+       id="rect62" />
+    <rect
+       x="1230"
+       y="492"
+       width="26"
+       height="4"
+       id="rect63" />
+    <rect
+       x="1252"
+       y="470"
+       width="4"
+       height="26"
+       id="rect64" />
+  </g>
+</svg>

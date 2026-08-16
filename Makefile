@@ -43,15 +43,24 @@ BIN_DIR            := $(HOME)/bin
 install: install-claude install-codex install-opencode install-bin
 	@echo "OK: installed for Claude Code, Codex, and opencode."
 
-install-bin:
+# Hard gate: never install a wrapper that kills processes by name.
+# A name-based sweep already killed the user's interactive TUI once
+# (docs/stall-investigation.md). PID-tree kills use kill + ps -o pid=,ppid=.
+guard-no-name-kills:
+	@! grep -nE 'pgrep|pkill|killall' skill/scripts/oc-edit skill/scripts/oc-delegate-hook.sh \
+		|| { echo "REFUSED: name-based kill in wrapper (hard gate, docs/stall-investigation.md)"; exit 1; }
+
+install-bin: guard-no-name-kills
 	@mkdir -p $(BIN_DIR)
 	install -m 0755 skill/scripts/oc-edit $(BIN_DIR)/oc-edit
+	install -m 0755 skill/scripts/oc-stall-verdict $(BIN_DIR)/oc-stall-verdict
 	@echo "OK: $(BIN_DIR)/oc-edit"
 
-install-claude:
+install-claude: guard-no-name-kills
 	@mkdir -p $(CLAUDE_SKILL_DIR)/scripts
 	install -m 0644 skill/SKILL.md $(CLAUDE_SKILL_DIR)/SKILL.md
 	install -m 0755 skill/scripts/oc-edit $(CLAUDE_SKILL_DIR)/scripts/oc-edit
+	install -m 0755 skill/scripts/oc-stall-verdict $(CLAUDE_SKILL_DIR)/scripts/oc-stall-verdict
 	install -m 0755 skill/scripts/oc-delegate-hook.sh $(CLAUDE_SKILL_DIR)/scripts/oc-delegate-hook.sh
 	@echo "OK: $(CLAUDE_SKILL_DIR)"
 
@@ -130,4 +139,4 @@ things_clean:
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
 	install install-all install-bin install-claude install-codex install-opencode \
-	uninstall
+	uninstall guard-no-name-kills

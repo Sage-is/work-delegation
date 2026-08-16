@@ -2,6 +2,8 @@
 # oc-edit — delegate a file edit to opencode's CLI.
 # Usage: oc-edit <dir> <model> "<instruction>" [files...]
 # Env: OC_DELEGATE=0 disables delegation entirely (exit 3).
+# Exit: 1 opencode failure, 2 usage, 3 disabled, 4 hardlink refusal,
+#       5 silent no-op, 6 stall (2 timeouts), 7 lock busy.
 set -euo pipefail
 
 if [ "${OC_DELEGATE:-1}" = "0" ]; then
@@ -56,6 +58,27 @@ preamble="You are performing a single scoped file edit. Do NOT run any git comma
 (no add/commit/push/checkout). Do NOT edit files other than those named. \
 Make only the requested change, matching the surrounding style exactly."
 
+# One delegation at a time, machine-wide. Phase 1 (2026-08-16,
+# docs/stall-investigation.md) never reproduced a stall without multiple live
+# instances, so serialization is the no-regrets guard. mkdir is atomic; macOS
+# has no flock. A dead holder's lock is reclaimed; a live one is respected.
+LOCK="${OC_LOCK:-/tmp/oc-edit-$(id -u).lock}"
+waited=0
+until mkdir "$LOCK" 2>/dev/null; do
+  holder=$(cat "$LOCK/pid" 2>/dev/null || true)
+  if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
+    rm -rf "$LOCK" 2>/dev/null || true
+    continue
+  fi
+  if [ "$waited" -ge "${OC_LOCK_WAIT:-90}" ]; then
+    echo "oc-edit: another delegation holds the lock (pid ${holder:-unknown}) after ${waited}s; retry later or edit inline" >&2
+    exit 7
+  fi
+  sleep 2; waited=$((waited + 2))
+done
+printf '%s\n' $$ > "$LOCK/pid"
+trap 'rm -rf "$LOCK"' EXIT
+
 # Fingerprint worktree content (tracked diff + hash of untracked/modified files)
 # so edits to not-yet-tracked files are not misread as silent no-ops.
 fingerprint() (
@@ -72,10 +95,13 @@ before=$(fingerprint)
 # forever (per-model congestion). Cap each attempt, pause, retry once, then
 # fail fast with exit 6 so the caller can fall back to another model or inline.
 OC_TIMEOUT=${OC_TIMEOUT:-120}
+# --pure skips external plugins: the antigravity auth plugin rewrites its
+# state file on every non-pure bootstrap (T3: 5/5), and every model family
+# delegation routes to works without it (free, opencode-go, github-copilot).
 run_once() {
   timeout "$OC_TIMEOUT" opencode run "$preamble
 
-$instruction" --dir "$dir" -m "$model" --auto --format json ${file_args[@]+"${file_args[@]}"} 2>&1
+$instruction" --dir "$dir" -m "$model" --auto --format json --pure ${file_args[@]+"${file_args[@]}"} 2>&1
 }
 rc=0; out=$(run_once) || rc=$?
 if [ "$rc" -eq 124 ]; then
