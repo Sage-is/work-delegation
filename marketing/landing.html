@@ -1,0 +1,61 @@
+<main>
+  <header>
+    <h1>work-delegation</h1>
+    <p>Expensive models should judge. Cheap models should type.</p>
+  </header>
+
+  <section>
+    <h2>The problem</h2>
+    <p>
+      Your premium AI assistant spends most of its tokens typing file
+      content. Docs pages, style passes, docstring sweeps. Work a free
+      model handles fine.
+    </p>
+  </section>
+
+  <section>
+    <h2>The split</h2>
+    <p>
+      work-delegation gives your assistant a wrapper called
+      <code>oc-edit</code>. The assistant writes a precise brief. A free
+      model, driven through opencode's CLI, does the typing. The
+      assistant reads the git diff before anything counts as done.
+      Judgment stays expensive. Typing gets cheap.
+    </p>
+  </section>
+
+  <section>
+    <h2>Measured, not promised</h2>
+    <p>
+      In an 8-run matrix across four task types, the free tier scored
+      4 for 4 with zero retries at 7 to 15 seconds per task. The paid
+      tier matched it on quality and took 5 to 7 times longer. Every
+      diff was reviewed line by line. The raw patches ship in the repo.
+    </p>
+  </section>
+
+  <section>
+    <h2>Guardrails</h2>
+    <p>
+      The delegated session cannot run git, delete recursively, fetch
+      the web, or spawn nested delegation. A hardlink guard protects
+      linked files. One environment variable, <code>OC_DELEGATE=0</code>,
+      shuts the whole thing off.
+    </p>
+  </section>
+
+  <section>
+    <h2>Every harness</h2>
+    <p>
+      One <code>make install-all</code> covers Claude Code, Codex, and
+      opencode itself. The same brief-delegate-review loop, whichever
+      assistant you run.
+    </p>
+  </section>
+
+  <footer>
+    <p>
+      AGPL-3.0, from <a href="https://sage.is">Sage.is</a>.
+    </p>
+  </footer>
+</main>

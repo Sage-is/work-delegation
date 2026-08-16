@@ -1,0 +1,16 @@
+diff --git a/src/__pycache__/paginate.cpython-312.pyc b/src/__pycache__/paginate.cpython-312.pyc
+new file mode 100644
+index 0000000..ec761aa
+Binary files /dev/null and b/src/__pycache__/paginate.cpython-312.pyc differ
+diff --git a/src/paginate.py b/src/paginate.py
+index a3d0db0..394bfc3 100644
+--- a/src/paginate.py
++++ b/src/paginate.py
+@@ -1,6 +1,6 @@
+ def paginate(items, page_size):
+     """Split items into pages of page_size; last page may be short."""
+     pages = []
+-    for i in range(len(items) // page_size):
++    for i in range((len(items) + page_size - 1) // page_size):
+         pages.append(items[i * page_size:(i + 1) * page_size])
+     return pages

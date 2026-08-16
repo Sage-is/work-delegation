@@ -1,0 +1,26 @@
+diff --git a/src/metrics.py b/src/metrics.py
+index a3ed3d6..101c0ae 100644
+--- a/src/metrics.py
++++ b/src/metrics.py
+@@ -1,15 +1,20 @@
++import math
++
+ def mean(values):
++    """Return the arithmetic mean of values."""
+     return sum(values) / len(values)
+ 
+ def variance(values):
++    """Return the population variance of values."""
+     m = mean(values)
+     return sum((v - m) ** 2 for v in values) / len(values)
+ 
+ def zscore(value, values):
+-    import math
++    """Return the z-score of value within values."""
+     return (value - mean(values)) / math.sqrt(variance(values))
+ 
+ def rolling(values, window):
++    """Return a list of means over a sliding window."""
+     out = []
+     for i in range(len(values) - window + 1):
+         out.append(mean(values[i:i + window]))

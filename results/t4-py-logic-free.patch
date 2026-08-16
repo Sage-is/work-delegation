@@ -1,0 +1,13 @@
+diff --git a/src/paginate.py b/src/paginate.py
+index a3d0db0..04758b2 100644
+--- a/src/paginate.py
++++ b/src/paginate.py
+@@ -1,6 +1,6 @@
+ def paginate(items, page_size):
+     """Split items into pages of page_size; last page may be short."""
+     pages = []
+-    for i in range(len(items) // page_size):
+-        pages.append(items[i * page_size:(i + 1) * page_size])
++    for i in range(0, len(items), page_size):
++        pages.append(items[i:i + page_size])
+     return pages

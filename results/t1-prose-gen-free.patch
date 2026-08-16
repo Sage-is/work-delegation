@@ -1,0 +1,46 @@
+diff --git a/docs/backup.md b/docs/backup.md
+new file mode 100644
+index 0000000..56c1114
+--- /dev/null
++++ b/docs/backup.md
+@@ -0,0 +1,40 @@
++# Backing Up Your App
++
++Backups protect your data. Run them before you change anything important.
++
++## Why Volume-Level Backups Win
++
++In-app exports miss hidden state. They skip uploads, queued jobs, and session
++data stored outside the database. They also depend on the app running. If the
++app is broken, so is your export.
++
++Volume-level backups capture the whole data directory. They include the
++database files, uploaded files, and configuration. Nothing is skipped. Restore
++is a copy, not a re-import, so it is faster and less error-prone.
++
++Use in-app exports when you need a portable, human-readable snapshot. Use
++volume backups for recovery.
++
++## Weekly Schedule
++
++Back up every week. Do it at the same time so it becomes routine. A Sunday
++night cron job works well.
++
++Keep three rotations:
++
++- Daily snapshots, retained for 7 days.
++- Weekly snapshots, retained for 8 weeks.
++- Monthly snapshots, retained for 12 months.
++
++Store one copy off-site. A second machine or object storage guards against a
++single server failure.
++
++## Restore Drill
++
++A backup you have not tested is a guess. Run a drill every month.
++
++1. Copy the backup to a fresh machine or empty directory.
++2. Start the app against the copied data.
++3. Check that recent records exist and uploads open.
++
++Log the result. If the drill fails, fix the backup process before you need it.

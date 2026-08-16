@@ -1,0 +1,22 @@
+diff --git a/docs/upload-guide.md b/docs/upload-guide.md
+index b8a1729..a08f052 100644
+--- a/docs/upload-guide.md
++++ b/docs/upload-guide.md
+@@ -1,13 +1,6 @@
+ # Uploading Documents
+ 
+-It should be noted that the process of uploading documents to the system is
+-actually quite straightforward and simple. In order to begin the process of
+-uploading, users will first need to navigate their way to the admin panel,
+-which can basically be found in the upper right-hand corner of the interface.
+-Once the user has successfully arrived at the admin panel, there is a button
+-labeled "Upload" that can be clicked in order to initiate the commencement of
+-the upload process. It is important to note that the system is capable of
+-supporting a wide variety of different file formats, including but not limited
+-to PDF, DOCX, and TXT. In the event that an upload happens to fail for any
+-reason whatsoever, users are advised to attempt the upload again at a later
+-point in time.
++Uploading documents to the system is straightforward. Go to the admin panel,
++in the upper right-hand corner of the interface. Click the "Upload" button to
++start. The system supports a wide variety of file formats, including PDF, DOCX,
++and TXT. If an upload fails, try again later.

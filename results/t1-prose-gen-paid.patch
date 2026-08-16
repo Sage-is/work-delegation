@@ -1,0 +1,41 @@
+diff --git a/docs/backup.md b/docs/backup.md
+new file mode 100644
+index 0000000..dfa8f4d
+--- /dev/null
++++ b/docs/backup.md
+@@ -0,0 +1,35 @@
++# Backing Up Your App
++
++This guide covers backups for your self-hosted instance. Read it before you need it.
++
++## Why Volume Backups Beat In-App Exports
++
++In-app exports capture only what the app knows about. They skip config files,
++uploaded media, and environment settings. A volume-level backup copies the whole
++filesystem the app writes to. You get the database, uploads, and settings in one
++snapshot. Restores become a file copy, not an import ritual.
++
++## Weekly Schedule
++
++Run a full volume backup every week. Follow these rules:
++
++- Pick a quiet hour. Sunday at 02:00 works for most apps.
++- Stop the app, or use filesystem snapshots, so the copy is consistent.
++- Keep four weekly snapshots. Add a monthly snapshot for six months of history.
++- Store one copy off-site. A second disk in the same rack is not a backup.
++
++Automate the job with cron or your container host's scheduler. Check the log
++every Monday. A silent failure means you have no backups.
++
++## Restore Drill
++
++A backup you have never restored is a hope, not a plan. Run a drill every quarter.
++
++1. Spin up a fresh host or VM.
++2. Install the same app version you run in production.
++3. Copy your latest snapshot onto the new data volume.
++4. Start the app and log in.
++5. Check recent records, uploaded files, and user accounts.
++6. Time the drill. Record how long full recovery takes.
++
++Fix anything that breaks. Update this guide when the steps change.

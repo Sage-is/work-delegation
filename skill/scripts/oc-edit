@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# oc-edit — delegate a file edit to opencode's CLI.
+# Usage: oc-edit <dir> <model> "<instruction>" [files...]
+# Env: OC_DELEGATE=0 disables delegation entirely (exit 3).
+set -euo pipefail
+
+if [ "${OC_DELEGATE:-1}" = "0" ]; then
+  echo "oc-edit: delegation disabled (OC_DELEGATE=0)" >&2
+  exit 3
+fi
+
+if [ $# -lt 3 ]; then
+  echo "usage: oc-edit <dir> <model> \"<instruction>\" [files...]" >&2
+  exit 2
+fi
+
+dir=$1; model=$2; instruction=$3; shift 3
+
+if [ ! -d "$dir" ]; then
+  echo "oc-edit: no such directory: $dir" >&2
+  exit 2
+fi
+
+# Hardlink guard: opencode's editor replaces inodes; refuse hardlinked targets.
+file_args=()
+for f in "$@"; do
+  case $f in
+    /*) path=$f ;;
+    *)  path="$dir/$f" ;;
+  esac
+  if [ -e "$path" ]; then
+    links=$(stat -f %l "$path")
+    if [ "$links" -gt 1 ]; then
+      echo "oc-edit: REFUSED — $path has $links hardlinks; editing breaks the chain" >&2
+      exit 4
+    fi
+  fi
+  file_args+=(-f "$path")
+done
+
+# Deny git and destructive commands at the permission layer; --auto approves the rest.
+# Rule order matters: LAST matching rule wins, so "*":"allow" goes first.
+export OPENCODE_PERMISSION='{
+  "bash": {
+    "*": "allow",
+    "git*": "deny",
+    "rm -rf*": "deny",
+    "opencode*": "deny"
+  },
+  "edit": "allow",
+  "webfetch": "deny",
+  "websearch": "deny"
+}'
+
+preamble="You are performing a single scoped file edit. Do NOT run any git commands \
+(no add/commit/push/checkout). Do NOT edit files other than those named. \
+Make only the requested change, matching the surrounding style exactly."
+
+# Fingerprint worktree content (tracked diff + hash of untracked/modified files)
+# so edits to not-yet-tracked files are not misread as silent no-ops.
+fingerprint() {
+  git -C "$dir" diff 2>/dev/null | shasum -a 256
+  git -C "$dir" ls-files -om --exclude-standard -z 2>/dev/null \
+    | xargs -0 shasum -a 256 2>/dev/null | shasum -a 256
+}
+before=$(fingerprint)
+
+out=$(opencode run "$preamble
+
+$instruction" --dir "$dir" -m "$model" --auto --format json ${file_args[@]+"${file_args[@]}"} 2>&1) || {
+  echo "oc-edit: opencode run failed" >&2
+  printf '%s\n' "$out" | tail -20 >&2
+  exit 1
+}
+
+session=$(printf '%s' "$out" | grep -o '"sessionID":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+echo "session: ${session:-unknown}"
+
+# Sweep build artifacts the model may leave from verifying its own edit.
+find "$dir" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+
+if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  after=$(fingerprint)
+  if [ "$before" = "$after" ]; then
+    echo "oc-edit: WARNING — no changes detected (silent no-op)" >&2
+    exit 5
+  fi
+  echo "--- diff stat ---"
+  git -C "$dir" diff --stat
+else
+  echo "oc-edit: note — $dir is not a git repo; cannot show diff" >&2
+fi

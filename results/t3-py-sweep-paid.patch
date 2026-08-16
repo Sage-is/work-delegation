@@ -1,0 +1,30 @@
+diff --git a/src/__pycache__/metrics.cpython-312.pyc b/src/__pycache__/metrics.cpython-312.pyc
+new file mode 100644
+index 0000000..5b7f5d9
+Binary files /dev/null and b/src/__pycache__/metrics.cpython-312.pyc differ
+diff --git a/src/metrics.py b/src/metrics.py
+index a3ed3d6..f961212 100644
+--- a/src/metrics.py
++++ b/src/metrics.py
+@@ -1,15 +1,20 @@
++import math
++
+ def mean(values):
++    """Return the arithmetic mean of values."""
+     return sum(values) / len(values)
+ 
+ def variance(values):
++    """Return the population variance of values."""
+     m = mean(values)
+     return sum((v - m) ** 2 for v in values) / len(values)
+ 
+ def zscore(value, values):
+-    import math
++    """Return the z-score of value relative to values."""
+     return (value - mean(values)) / math.sqrt(variance(values))
+ 
+ def rolling(values, window):
++    """Return the rolling mean of values over the given window."""
+     out = []
+     for i in range(len(values) - window + 1):
+         out.append(mean(values[i:i + window]))

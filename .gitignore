@@ -1,0 +1,17 @@
+# Hidden-artifact allowlist: deny dotfiles and dotfolders everywhere in the
+# repo unless they are intentionally shared and explicitly included below.
+.*
+!/.gitignore
+!/.gitattributes
+!/.editorconfig
+# .env.example at any depth (no leading slash). Keep this note on its OWN line —
+# gitignore has no inline comments; a trailing comment becomes part of the pattern.
+!.*.example
+
+# Non-dot build & runtime junk (root-anchored so vendored sub-repos keep their own)
+node_modules/
+/dist/
+/build/
+*.log
+*.tgz
+__pycache__/
