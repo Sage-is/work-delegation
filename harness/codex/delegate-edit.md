@@ -2,7 +2,7 @@
 
 Delegate the requested file edit to a cheap model instead of typing it yourself. You stay the reviewer.
 
-1. Write a brief. Name the target files and say in-place or new file. Enumerate the exact change. Spell out style rules. State what must not change.
+1. Write a brief. Name the target files and say in-place or new file. Enumerate the exact change. Spell out style rules. State what must not change. Keep it under ~2000 chars: state outcomes and invariants, do not dictate every element and property — that cancels the savings. For conventions, point the delegate at a reference file in the project (it can read locally) instead of transcribing them. Multi-KB briefs correlate with gateway stalls; the wrapper warns when a brief is oversized. One artifact per run.
 2. Run the wrapper:
 
    ```sh

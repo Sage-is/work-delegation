@@ -4,7 +4,7 @@ description: Delegate a file edit to a cheap model via oc-edit; review the diff 
 
 Delegate the requested file edit to a cheap model through the oc-edit wrapper instead of editing directly. You stay the reviewer.
 
-1. Write a brief: target files (in-place or new), the exact change enumerated, style rules spelled out, and what must not change.
+1. Write a brief: target files (in-place or new), the exact change enumerated, style rules spelled out, and what must not change. Keep it under ~2000 chars: outcomes and invariants, not every element and property — that cancels the savings. Point the delegate at a reference file in the project for conventions (local reads are allowed) instead of transcribing them. Multi-KB briefs correlate with gateway stalls; the wrapper warns when oversized. One artifact per run.
 2. Run:
 
    ```sh

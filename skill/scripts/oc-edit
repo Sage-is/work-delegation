@@ -1,10 +1,46 @@
 #!/usr/bin/env bash
 # oc-edit — delegate a file edit to opencode's CLI.
 # Usage: oc-edit <dir> <model> "<instruction>" [files...]
+#        oc-edit --doctor   (verify PATH, skill, hook, env, ledger)
 # Env: OC_DELEGATE=0 disables delegation entirely (exit 3).
+#      OC_LOG=<path> moves the prompt ledger; OC_LOG=0 disables it.
+#      Default ledger: ~/.local/state/oc-edit/log.jsonl, one JSON line per run.
 # Exit: 1 opencode failure, 2 usage, 3 disabled, 4 hardlink refusal,
 #       5 silent no-op, 6 stall (2 timeouts), 7 lock busy.
+# Missing targets are seeded as empty files (parents created) so create-new
+# briefs work; on a failed run, still-empty seeds are removed again.
 set -euo pipefail
+
+# Self-check: is this machine fully wired for delegation?
+if [ "${1:-}" = "--doctor" ]; then
+  status=0
+  pass() { echo "PASS  $1"; }
+  fail() { echo "FAIL  $1"; status=1; }
+  command -v opencode >/dev/null 2>&1 && pass "opencode on PATH" || fail "opencode on PATH"
+  command -v oc-edit >/dev/null 2>&1 && pass "oc-edit on PATH" || fail "oc-edit on PATH (run: make install)"
+  [ -f "$HOME/.claude/skills/delegate-edit/SKILL.md" ] \
+    && pass "delegate-edit skill installed" || fail "delegate-edit skill installed (run: make install)"
+  grep -q oc-delegate-hook "$HOME/.claude/settings.json" 2>/dev/null \
+    && pass "enforce hook registered in ~/.claude/settings.json" \
+    || fail "enforce hook registered in ~/.claude/settings.json"
+  [ "${OC_DELEGATE:-1}" != "0" ] \
+    && pass "delegation armed (OC_DELEGATE unset or 1)" \
+    || fail "delegation armed (kill switch OC_DELEGATE=0 is set)"
+  if [ "${OC_DELEGATE_ENFORCE:-0}" = "1" ]; then
+    pass "enforcement on (OC_DELEGATE_ENFORCE=1)"
+  else
+    echo "note  enforcement off (OC_DELEGATE_ENFORCE unset) — hook stays inert"
+  fi
+  log=${OC_LOG:-$HOME/.local/state/oc-edit/log.jsonl}
+  if [ "$log" = "0" ]; then
+    echo "note  ledger disabled (OC_LOG=0)"
+  elif mkdir -p "$(dirname "$log")" 2>/dev/null && [ -w "$(dirname "$log")" ]; then
+    pass "ledger writable: $log"
+  else
+    fail "ledger writable: $log"
+  fi
+  exit "$status"
+fi
 
 if [ "${OC_DELEGATE:-1}" = "0" ]; then
   echo "oc-edit: delegation disabled (OC_DELEGATE=0)" >&2
@@ -23,6 +59,58 @@ if [ ! -d "$dir" ]; then
   exit 2
 fi
 
+# Brief-economy nudge: multi-KB briefs correlate with gateway stalls
+# (docs/stall-investigation.md) and cancel the token savings. Warn, never block.
+if [ "${#instruction}" -gt 2000 ]; then
+  echo "oc-edit: WARNING — brief is ${#instruction} chars; multi-KB briefs correlate with gateway stalls and cancel the savings. Trim, split, or point the delegate at reference files in $dir instead of inlining." >&2
+fi
+
+# Prompt ledger: one JSON line per run, written from the EXIT trap so
+# refusals, stalls, and silent no-ops are captured alongside successes.
+OC_LOG=${OC_LOG:-$HOME/.local/state/oc-edit/log.jsonl}
+start_ts=$(date +%s)
+session=""; retries=0; diff_stat=""; lock_held=""; paths=(); seeded=()
+log_event() {
+  [ "$OC_LOG" = "0" ] && return 0
+  mkdir -p "$(dirname "$OC_LOG")" 2>/dev/null || return 0
+  OC_L_RC=$1 OC_L_DIR=$dir OC_L_MODEL=$model OC_L_INSTRUCTION=$instruction \
+  OC_L_FILES=$(printf '%s\n' ${paths[@]+"${paths[@]}"}) \
+  OC_L_SEEDED=$(printf '%s\n' ${seeded[@]+"${seeded[@]}"}) \
+  OC_L_SESSION=$session OC_L_RETRIES=$retries \
+  OC_L_DURATION=$(( $(date +%s) - start_ts )) OC_L_DIFF_STAT=$diff_stat \
+  python3 - >> "$OC_LOG" 2>/dev/null <<'PY' || true
+import json, os, time
+e = os.environ
+print(json.dumps({
+    "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+    "dir": e["OC_L_DIR"],
+    "model": e["OC_L_MODEL"],
+    "files": [f for f in e["OC_L_FILES"].splitlines() if f],
+    "seeded": [f for f in e["OC_L_SEEDED"].splitlines() if f],
+    "instruction": e["OC_L_INSTRUCTION"],
+    "preamble": "v1",
+    "rc": int(e["OC_L_RC"]),
+    "session": e["OC_L_SESSION"] or None,
+    "retries": int(e["OC_L_RETRIES"]),
+    "duration_s": int(e["OC_L_DURATION"]),
+    "diff_stat": e["OC_L_DIFF_STAT"] or None,
+}, ensure_ascii=False))
+PY
+}
+cleanup() {
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    # A failed run must not leave seed stubs behind; keep any the model filled.
+    for f in ${seeded[@]+"${seeded[@]}"}; do
+      [ -s "$f" ] || rm -f "$f"
+    done
+  fi
+  [ -n "$lock_held" ] && rm -rf "$LOCK"
+  log_event "$rc" || true
+  exit "$rc"
+}
+trap cleanup EXIT
+
 # Hardlink guard: opencode's editor replaces inodes; refuse hardlinked targets.
 file_args=()
 for f in "$@"; do
@@ -30,12 +118,19 @@ for f in "$@"; do
     /*) path=$f ;;
     *)  path="$dir/$f" ;;
   esac
+  paths+=("$path")
   if [ -e "$path" ]; then
     links=$(stat -f %l "$path")
     if [ "$links" -gt 1 ]; then
       echo "oc-edit: REFUSED — $path has $links hardlinks; editing breaks the chain" >&2
       exit 4
     fi
+  else
+    # Seed create-new targets: opencode's -f refuses nonexistent files.
+    mkdir -p "$(dirname "$path")"
+    : > "$path"
+    seeded+=("$path")
+    echo "oc-edit: seeded new file $path"
   fi
   file_args+=(-f "$path")
 done
@@ -76,8 +171,8 @@ until mkdir "$LOCK" 2>/dev/null; do
   fi
   sleep 2; waited=$((waited + 2))
 done
+lock_held=1
 printf '%s\n' $$ > "$LOCK/pid"
-trap 'rm -rf "$LOCK"' EXIT
 
 # Fingerprint worktree content (tracked diff + hash of untracked/modified files)
 # so edits to not-yet-tracked files are not misread as silent no-ops.
@@ -107,6 +202,7 @@ rc=0; out=$(run_once) || rc=$?
 if [ "$rc" -eq 124 ]; then
   echo "oc-edit: no response in ${OC_TIMEOUT}s; retrying once after 15s pause" >&2
   sleep 15
+  retries=1
   rc=0; out=$(run_once) || rc=$?
   if [ "$rc" -eq 124 ]; then
     echo "oc-edit: gateway stall on $model (2 attempts); pick another model or edit inline" >&2
@@ -132,7 +228,9 @@ if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     exit 5
   fi
   echo "--- diff stat ---"
-  git -C "$dir" diff --stat
+  stat_out=$(git -C "$dir" diff --stat)
+  printf '%s\n' "$stat_out"
+  diff_stat=$(printf '%s\n' "$stat_out" | tail -1 | sed 's/^ *//')
 else
   echo "oc-edit: note — $dir is not a git repo; cannot show diff" >&2
 fi

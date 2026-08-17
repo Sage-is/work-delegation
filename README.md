@@ -32,14 +32,16 @@ Quality matched at this task size. The free tier wins on speed and cost. Default
 
 The loop has four steps:
 
-1. You write a brief. It names the target files, the exact change, the style rules, and what must not change.
+1. You write a brief. It names the target files, the exact change, the style rules, and what must not change. It states outcomes and constraints — an oversized brief that dictates every detail cancels the savings and correlates with gateway stalls.
 2. oc-edit hands the brief to opencode running headless with a fixed model.
 3. opencode edits the file and returns a diff.
 4. You read the full diff and review it before anything counts as done.
 
-A permission layer denies git commands, web fetch, and web search inside the delegated session, so a free model cannot rewrite history or wander off. A hardlink guard refuses to touch files with more than one link; those need the inline tmp-file method. 
+A permission layer denies git commands, web fetch, and web search inside the delegated session, so a free model cannot rewrite history or wander off. A hardlink guard refuses to touch files with more than one link; those need the inline tmp-file method.
 
 Our OC_DELEGATE=0 environment variable is the kill switch. It stops the wrapper, passes the hook through, and keeps this work in your hands. When it is set, you code agent with edit directly instead of handing off.
+
+Every run writes one JSON line to ~/.local/state/oc-edit/log.jsonl: the brief, model, files, exit code, retries, duration, and diff stat. Failures log too — that is the routing evidence. Setting OC_DELEGATE_ENFORCE=1 arms a PreToolUse hook that bounces oversized direct edits toward delegation. Run oc-edit --doctor (or make doctor) to verify a machine end to end.
 
 ## Install
 

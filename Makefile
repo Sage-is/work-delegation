@@ -74,6 +74,9 @@ install-opencode:
 	install -m 0644 harness/opencode/delegate-edit.md $(OPENCODE_CMD_DIR)/delegate-edit.md
 	@echo "OK: $(OPENCODE_CMD_DIR)/delegate-edit.md"
 
+doctor:
+	@$(BIN_DIR)/oc-edit --doctor
+
 uninstall:
 	rm -rf $(CLAUDE_SKILL_DIR)
 	rm -f $(BIN_DIR)/oc-edit
@@ -139,4 +142,4 @@ things_clean:
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
 	install install-all install-bin install-claude install-codex install-opencode \
-	uninstall guard-no-name-kills
+	doctor uninstall guard-no-name-kills
