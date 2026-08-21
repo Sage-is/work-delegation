@@ -23,11 +23,11 @@ Quality matched at this task size. The free tier wins on speed and cost. Default
 ## How it works
 
 ```text
-┌──────────────────┐    brief    ┌──────────────────┐
-│    THE LINER     │ ──────────▶ │     THE TUG      │
-│  expensive model │             │  cheap or free   │
-│  plans and judges│ ◀────────── │  model, types    │
-└──────────────────┘    diff     └──────────────────┘
+┌───────────────────┐    brief    ┌──────────────────┐
+│    THE LINER      │ ──────────▶ │     THE TUG      │
+│  expensive model  │             │  cheap or free   │
+│  plans and judges │ ◀────────── │  model, types    │
+└───────────────────┘    diff     └──────────────────┘
 ```
 
 The loop has four steps:
