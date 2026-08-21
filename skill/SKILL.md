@@ -23,7 +23,11 @@ moves it; `OC_LOG=0` disables it. Failure records (exit 4/5/6/7) are the
 routing evidence — do not disable the ledger to "clean up" output.
 
 `oc-edit --doctor` (or `make doctor`) verifies a machine: opencode and oc-edit
-on PATH, skill installed, hook registered, kill switch off, ledger writable.
+on PATH, skill installed, hook registered, kill switch off, ledger writable. It
+also reports brief economy — the median brief size over the last 50 runs, how
+many exceeded 2000 chars, how many were refused, and how many files were
+created. A rising median is the signal that delegation has drifted back into
+dictation.
 
 ## The wrapper
 
@@ -47,12 +51,31 @@ with:
   all routed model families work without it)
 - A hardlink guard (exit 4) — never bypass it; hardlinked files must be
   edited inline with the tmp-file + `cat >` method
-- Seeding: missing targets are created as empty files (parent dirs too)
-  so create-new briefs attach cleanly — no need to pre-touch files; a
-  failed run removes any seed it left empty, and the ledger records
-  seeded paths per run
+- File creation, both ways (see Creating files below)
+- A hard brief ceiling (exit 8) above `OC_BRIEF_MAX` chars, default 3500 —
+  the gate that keeps delegation from degenerating into dictation
 - Silent no-op detection (exit 5), stall fail-fast (exit 6 after two capped
   attempts), and a diff stat on success
+
+## Creating files
+
+oc-edit creates files as well as edits them. Two ways, both supported:
+
+- Name the new path as a trailing arg. The wrapper seeds it as an empty
+  file (parent dirs included) so opencode's `-f` attaches, and the
+  preamble tells the delegate an empty named file is a new file to write
+  in full. A seed the delegate never fills is removed again, on success
+  and on failure alike.
+- Or just say "create `<path>`" in the brief with no trailing arg, and
+  let the delegate pick the path and write it.
+
+New files are untracked, and `git diff` ignores untracked files — a
+created file would otherwise review as an empty diff. On success the
+wrapper `git add -N`s every path that appeared during the run, so the
+creation shows up in the reviewer's diff like any other change. The run
+prints a `--- created ---` list and the exact `git reset --` undo.
+`OC_NO_INDEX_ADD=1` skips the intent-to-add; review those files with
+`cat` instead.
 
 ## Stalls (exit 6) and busy lock (exit 7)
 
@@ -120,7 +143,14 @@ Hard numbers:
 
 - Target under ~2000 chars — the enforce hook's threshold in reverse:
   content that big gets delegated, briefs that big get trimmed, split, or
-  converted to pointers.
+  converted to pointers. Past 2000 the wrapper warns; past `OC_BRIEF_MAX`
+  (default 3500) it refuses with exit 8. Do not raise the ceiling to get a
+  dictation brief through — cut the brief instead.
+- The ceiling is measured, not guessed. Ledger, 20 runs to 2026-08-18: every
+  brief of 3992 chars or more failed (three stalls, one error); every brief
+  of 2904 or fewer succeeded. 3500 sits in that gap.
+- Fenced blocks carry invariants, not the artifact. Past 30 fenced lines
+  the wrapper warns that you have started typing the output yourself.
 - One artifact per run; splitting isolates retries.
 - Evidence (ledger 2026-08-16): four 4-7 KB dictation briefs all stalled
   (exit 6, ~255s each plus retry); a 60-char brief ran in 6s.
@@ -131,7 +161,12 @@ Hard numbers:
 
 1. Write the brief. Run `oc-edit`.
 2. Read the FULL diff (`git -C <dir> diff`). Never trust the edit blind.
+   Created files are in it too, via intent-to-add.
 3. Wrong diff → either re-instruct in-session
    (`opencode run -s <sessionID> "fix: ..." --dir <dir> -m <model> --auto`)
-   or `git checkout -- <file>` and do it inline. One retry max, then inline.
+   or revert and do it inline. Revert an edited file with
+   `git checkout -- <file>`; revert a created file with
+   `git -C <dir> reset -- <file> && rm <file>` — `git checkout` on an
+   intent-to-add path empties it instead of removing it. One retry max,
+   then inline.
 4. Report done only after the diff is reviewed.
