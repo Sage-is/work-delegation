@@ -25,11 +25,11 @@ The gateway retired `deepseek-v4-flash-free` on 2026-08-21, and the opencode CLI
 ## How it works
 
 ```text
-┌──────────────────┐    brief    ┌──────────────────┐
-│    THE LINER     │ ──────────▶ │     THE TUG      │
-│  expensive model │             │  cheap or free   │
-│  plans and judges│ ◀────────── │  model, types    │
-└──────────────────┘    diff     └──────────────────┘
+┌───────────────────┐    brief    ┌──────────────────┐
+│    THE LINER      │ ──────────▶ │     THE TUG      │
+│  expensive model  │             │  cheap or free   │
+│  plans and judges │ ◀────────── │  model, types    │
+└───────────────────┘    diff     └──────────────────┘
 ```
 
 The loop has four steps:
