@@ -130,3 +130,55 @@ the machine-wide lock, each logged `rc=0`. The cause was not the gateway.
   `opencode/big-pickle` (rc=0 in 25s and 76s on two real briefs). The wrapper
   now checks the model exists before taking the lock, turning a 256s stall into
   a 3s exit 2.
+
+## Field notes — 2026-09-04 (direct lanes)
+
+The opencode CLI bootstrap was the only stall source since 2026-08-21
+(`opencode/big-pickle` 6 wins / 4 stalls, `opencode-go/kimi-k3` 0 wins in 8).
+The gateway behind it is a plain OpenAI-compatible API, and the keys were
+already in `~/.local/share/opencode/auth.json`. One tool-call probe per lane:
+
+| Lane | Result |
+| --- | --- |
+| `zen/big-pickle` | `FreeUsageLimitError: Rate limit exceeded`, HTTP 429 in 0.7s |
+| `go/deepseek-v4-flash` | tool call in 2s |
+| `go/glm-5.3-flash` | tool call in 5s |
+| `nvidia/nemotron-3.5-lightning-30b-a3b` | tool call in 10s |
+| `ollama/qwen3.5:9b` (local) | tool call in 11s |
+| `zen/claude-haiku-4-5` | HTTP 401: paid Zen models need Zen billing |
+
+So `delegate-agent` calls these lanes directly and hops on any failure before
+the first edit. The old wrapper waited 257s on a stall; the new one moves on
+in about a second. Full design in `docs/how-it-works.md`.
+
+**Matrix, same four tasks as 2026-08-15**, rebuilt from `results/*.patch`
+into `tests/matrix/` and run with `make matrix` (`results/matrix-2026-09-04.md`):
+
+| Lane | Correct | Seconds per task | Cost |
+| --- | --- | --- | --- |
+| `claude/sonnet` | 4/4 | 18-22 | $0.09-0.12 |
+| `go/kimi-k3` | 4/4 | 6-38 | Go subscription |
+| `go/deepseek-v4-flash` | 3/4 (t1 guide came out 24 lines, brief said about 40) | 7-13 | Go subscription |
+| `go/glm-5.3-flash` | 3/4 (t2 dropped the "upper right" fact) | 6-35 | Go subscription |
+| `ollama/qwen3.5:9b` | 2/4 (t2 kept "actually"; t4 timed out) | 17-124 | $0 |
+| `nvidia/nemotron-3.5-lightning-30b-a3b` | 3/4 (t1 timed out at 120s; t3 took 8 turns) | 10-137 | NIM free tier, 40 req/min |
+| `zen/big-pickle` | 0/4, HTTP 429 in 1s every time | 1 | $0 |
+| `zen/claude-haiku-4-5` | 0/4, HTTP 401 | 1 | needs Zen billing |
+
+Default lane list from that table: `zen/big-pickle,go/kimi-k3,go/deepseek-v4-flash`.
+The free lane stays first because its refusal costs one second.
+
+Things learned on the way, each now in code or tests:
+
+- Cloudflare in front of opencode.ai answers 403 (error 1010) to Python's
+  default `User-Agent`; a named client passes.
+- NIM model ids carry their vendor. A bare `nvidia/nemotron-…` lane lost the
+  vendor half and got 404; the agent now completes it.
+- `claude -p --bare` skips keychain reads, so the nested run had no login.
+  The wrapper marks nested runs with `DELEGATE_NESTED=1` for the hook instead.
+- A 240s budget squeezed the per-request timeout under a whole-document
+  write and exited 6 with nothing landed. Budget is 480s, request timeout 120s.
+- Eight lanes writing one ledger at once made "the last row" the wrong row
+  for the scoreboard; rows are keyed by repo path now.
+- The brief-size ceiling is gone. Successes ran at 2008-2884 chars and stalls
+  at 80-1146, so the 3500-char refusal guarded against nothing.

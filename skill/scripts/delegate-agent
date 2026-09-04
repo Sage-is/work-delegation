@@ -1,0 +1,426 @@
+#!/usr/bin/env python3
+"""delegate-agent — the direct-API typist behind delegate-edit.
+
+Usage:
+  delegate-agent --dir <dir> --lanes <prefix/model>[,<prefix/model>...] --brief-file <path>
+                 [--file <path>]... [--budget 480] [--max-turns 20] [--request-timeout 120]
+
+One OpenAI-compatible request shape for every provider. Lanes run in order; a lane
+is abandoned for the next one on any failure before the first mutating tool (write
+or edit) has run. After that the lane is committed: a later failure exits with the
+diff left in place for review.
+
+Tools: read, write, edit (exactly one match), ls, done. No shell. Every path must
+resolve under --dir; hardlinked targets are refused, because editors replace inodes.
+
+Exit: 0 ok, 1 API error after commit, 2 no lane usable, 6 timeout or budget,
+      8 max turns. Whether anything changed is the wrapper's call (exit 5 there).
+
+Stdout: one JSON line at the end (lane, lanes_skipped, turns, tokens_in, tokens_out,
+cost_usd, session, touched). Stderr: one line per turn, one per lane hop.
+
+Env: DELEGATE_BASE_URL overrides the base URL of every lane (tests use this).
+     DELEGATE_API_KEY is the key for the generic api/ prefix.
+     DELEGATE_AUTH_JSON points at opencode's auth.json (default
+     ~/.local/share/opencode/auth.json), the fallback key source for zen/, go/, nvidia/.
+
+Lane spelling: <prefix>/<model id as the provider names it>. NIM ids carry a vendor,
+so nvidia/moonshotai/kimi-k3 is right, and nvidia/nemotron-3.5-lightning-30b-a3b is
+completed to nvidia/nvidia/nemotron-… for you.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import socket
+import sys
+import time
+import urllib.error
+import urllib.request
+
+# prefix -> (base url, env var holding the key, entry in opencode's auth.json)
+PROVIDERS = {
+    "zen": ("https://opencode.ai/zen/v1", "OPENCODE_API_KEY", "opencode"),
+    "go": ("https://opencode.ai/zen/go/v1", "OPENCODE_GO_API_KEY", "opencode-go"),
+    "nvidia": ("https://integrate.api.nvidia.com/v1", "NVIDIA_API_KEY", "nvidia"),
+    "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", None),
+    "ollama": ("http://localhost:11434/v1", None, None),
+    "api": (None, "DELEGATE_API_KEY", None),  # base from DELEGATE_BASE_URL
+}
+
+PREAMBLE = (
+    "You are performing a single scoped file edit or file creation inside one project "
+    "directory. Use the tools: read a file before editing it, make only the requested "
+    "change, match the surrounding style exactly, and do not touch files other than "
+    "those named. If a named file is empty or missing, it is a new file: write its "
+    "complete contents from scratch. Never leave a named file empty. There is no shell "
+    "and no git. When the change is complete, call done with a one-line summary."
+)
+
+TOOLS = [
+    {"type": "function", "function": {
+        "name": "read", "description": "Read a file, optionally a 1-based line range.",
+        "parameters": {"type": "object", "properties": {
+            "path": {"type": "string"},
+            "start": {"type": "integer"}, "end": {"type": "integer"}},
+            "required": ["path"]}}},
+    {"type": "function", "function": {
+        "name": "write", "description": "Create or overwrite a file with the full content given.",
+        "parameters": {"type": "object", "properties": {
+            "path": {"type": "string"}, "content": {"type": "string"}},
+            "required": ["path", "content"]}}},
+    {"type": "function", "function": {
+        "name": "edit", "description": "Replace one exact occurrence of old with new in a file. "
+                                       "old must match exactly once.",
+        "parameters": {"type": "object", "properties": {
+            "path": {"type": "string"}, "old": {"type": "string"}, "new": {"type": "string"}},
+            "required": ["path", "old", "new"]}}},
+    {"type": "function", "function": {
+        "name": "ls", "description": "List a directory (default: the project root).",
+        "parameters": {"type": "object", "properties": {"path": {"type": "string"}}}}},
+    {"type": "function", "function": {
+        "name": "done", "description": "Finish. Call once the requested change is complete.",
+        "parameters": {"type": "object", "properties": {"summary": {"type": "string"}},
+                       "required": ["summary"]}}},
+]
+MUTATING = {"write", "edit"}
+READ_CAP = 200_000
+
+
+class ToolError(Exception):
+    pass
+
+
+class Workspace:
+    def __init__(self, root: str):
+        self.root = os.path.realpath(root)
+        self.touched: list[str] = []
+
+    def resolve(self, path: str) -> str:
+        if not path:
+            raise ToolError("path is required")
+        full = os.path.realpath(os.path.join(self.root, path))
+        if full != self.root and not full.startswith(self.root + os.sep):
+            raise ToolError(f"refused: {path} is outside the project directory")
+        return full
+
+    def _guard_links(self, full: str) -> None:
+        if os.path.exists(full) and os.stat(full).st_nlink > 1:
+            raise ToolError(f"refused: {os.path.relpath(full, self.root)} is hardlinked; "
+                            "editing would break the chain")
+
+    def read(self, path: str, start: int | None = None, end: int | None = None) -> str:
+        full = self.resolve(path)
+        if not os.path.isfile(full):
+            raise ToolError(f"no such file: {path}")
+        if os.path.getsize(full) > READ_CAP and start is None:
+            raise ToolError(f"{path} is over {READ_CAP} bytes; read it with start/end")
+        with open(full, encoding="utf-8", errors="replace") as fh:
+            lines = fh.readlines()
+        if start is not None or end is not None:
+            s = max((start or 1) - 1, 0)
+            e = end if end is not None else len(lines)
+            lines = lines[s:e]
+        return "".join(lines) if lines else "(empty file)"
+
+    def write(self, path: str, content: str) -> str:
+        full = self.resolve(path)
+        self._guard_links(full)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w", encoding="utf-8") as fh:
+            fh.write(content)
+        self._touch(full)
+        return f"wrote {len(content)} chars to {path}"
+
+    def edit(self, path: str, old: str, new: str) -> str:
+        full = self.resolve(path)
+        if not os.path.isfile(full):
+            raise ToolError(f"no such file: {path}")
+        self._guard_links(full)
+        if not old:
+            raise ToolError("old must not be empty; use write for a new file")
+        with open(full, encoding="utf-8") as fh:
+            text = fh.read()
+        n = text.count(old)
+        if n != 1:
+            raise ToolError(f"old matches {n} times in {path}; it must match exactly once")
+        with open(full, "w", encoding="utf-8") as fh:
+            fh.write(text.replace(old, new, 1))
+        self._touch(full)
+        return f"edited {path}"
+
+    def ls(self, path: str = ".") -> str:
+        full = self.resolve(path or ".")
+        if not os.path.isdir(full):
+            raise ToolError(f"not a directory: {path}")
+        names = sorted(os.listdir(full))
+        return "\n".join(n + ("/" if os.path.isdir(os.path.join(full, n)) else "")
+                         for n in names if n != ".git") or "(empty directory)"
+
+    def _touch(self, full: str) -> None:
+        rel = os.path.relpath(full, self.root)
+        if rel not in self.touched:
+            self.touched.append(rel)
+
+    def run(self, name: str, args: dict) -> str:
+        fn = {"read": self.read, "write": self.write, "edit": self.edit, "ls": self.ls}.get(name)
+        if fn is None:
+            raise ToolError(f"unknown tool: {name}")
+        try:
+            return fn(**{k: v for k, v in args.items() if k in fn.__code__.co_varnames})
+        except TypeError as exc:
+            raise ToolError(f"bad arguments for {name}: {exc}") from exc
+
+
+class LaneError(Exception):
+    """A request failed; `kind` is 'timeout' or 'error'."""
+
+    def __init__(self, kind: str, message: str):
+        super().__init__(message)
+        self.kind = kind
+
+
+def resolve_key(prefix: str) -> str | None:
+    base, env, entry = PROVIDERS[prefix]
+    if env and os.environ.get(env):
+        return os.environ[env]
+    if entry:
+        path = os.environ.get("DELEGATE_AUTH_JSON") or os.path.expanduser(
+            "~/.local/share/opencode/auth.json")
+        try:
+            with open(path, encoding="utf-8") as fh:
+                return json.load(fh).get(entry, {}).get("key") or None
+        except (OSError, ValueError):
+            return None
+    return None
+
+
+def base_url(prefix: str) -> str | None:
+    if os.environ.get("DELEGATE_BASE_URL"):
+        return os.environ["DELEGATE_BASE_URL"].rstrip("/")
+    return PROVIDERS[prefix][0]
+
+
+def post_chat(base: str, key: str | None, body: dict, timeout: float) -> dict:
+    data = json.dumps(body).encode("utf-8")
+    # Cloudflare in front of opencode.ai answers 403 (error 1010) to the default
+    # urllib signature; a named client passes. Measured 2026-09-04.
+    headers = {"Content-Type": "application/json", "Accept": "application/json",
+               "User-Agent": "delegate-agent/1 (work-delegation)"}
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    req = urllib.request.Request(f"{base}/chat/completions", data=data, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:300].replace("\n", " ")
+        raise LaneError("error", f"HTTP {exc.code} {detail}") from exc
+    except urllib.error.URLError as exc:
+        if isinstance(exc.reason, socket.timeout):
+            raise LaneError("timeout", f"no response in {int(timeout)}s") from exc
+        raise LaneError("error", f"connection: {exc.reason}") from exc
+    except (socket.timeout, TimeoutError) as exc:
+        raise LaneError("timeout", f"no response in {int(timeout)}s") from exc
+    except ValueError as exc:
+        raise LaneError("error", f"non-JSON response: {exc}") from exc
+    if payload.get("error"):
+        err = payload["error"]
+        msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+        raise LaneError("error", f"{err.get('type', 'error') if isinstance(err, dict) else 'error'}: {msg}")
+    if not payload.get("choices"):
+        raise LaneError("error", "response has no choices")
+    return payload
+
+
+def fmt_k(n: int) -> str:
+    return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
+
+
+def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadline: float,
+             stats: dict) -> str:
+    """Drive one lane to completion. Returns 'ok'. Raises LaneError; callers decide
+    whether the lane was committed (stats['committed'])."""
+    prefix, _, model = lane.partition("/")
+    # NIM model ids carry their vendor (nvidia/nemotron-…, moonshotai/kimi-k3).
+    # A bare name after the prefix is one of NVIDIA's own, so put the vendor back.
+    if prefix == "nvidia" and "/" not in model:
+        model = f"nvidia/{model}"
+    base = base_url(prefix)
+    if not base:
+        raise LaneError("error", "no base URL (set DELEGATE_BASE_URL for api/)")
+    key = resolve_key(prefix)
+    if key is None and PROVIDERS[prefix][1]:
+        raise LaneError("error", f"no key ({PROVIDERS[prefix][1]} unset, auth.json has none)")
+
+    user = brief
+    if named:
+        user += "\n\nTarget files (relative to the project root): " + ", ".join(named)
+    messages = [{"role": "system", "content": PREAMBLE}, {"role": "user", "content": user}]
+    nudges = 0
+    while True:
+        if stats["turns"] >= args.max_turns:
+            raise LaneError("turns", f"max turns ({args.max_turns}) reached")
+        remaining = deadline - time.monotonic()
+        if remaining <= 1:
+            raise LaneError("timeout", f"budget of {args.budget}s exhausted")
+        body = {"model": model, "messages": messages, "tools": TOOLS, "tool_choice": "auto"}
+        if prefix == "openrouter":
+            body["usage"] = {"include": True}
+        try:
+            resp = post_chat(base, key, body, min(args.request_timeout, remaining))
+        except LaneError as exc:
+            if exc.kind == "timeout" and stats["committed"] and not stats.get("retried"):
+                stats["retried"] = True
+                print(f"{lane}  {exc}; one retry after 5s", file=sys.stderr)
+                time.sleep(5)
+                continue
+            raise
+        stats["turns"] += 1
+        stats["session"] = stats["session"] or resp.get("id")
+        usage = resp.get("usage") or {}
+        stats["tokens_in"] += int(usage.get("prompt_tokens") or 0)
+        stats["tokens_out"] += int(usage.get("completion_tokens") or 0)
+        if usage.get("cost") is not None:
+            stats["cost_usd"] = (stats["cost_usd"] or 0.0) + float(usage["cost"])
+
+        msg = resp["choices"][0].get("message") or {}
+        calls = msg.get("tool_calls") or []
+        # Echo the assistant turn back verbatim, minus provider extras the API rejects.
+        messages.append({k: v for k, v in msg.items()
+                         if k in ("role", "content", "tool_calls")} | {"role": "assistant"})
+        if not calls:
+            if ws.touched:
+                print(f"{lane}  turn {stats['turns']}/{args.max_turns}  finished without done",
+                      file=sys.stderr)
+                return "ok"
+            if nudges < 2:
+                nudges += 1
+                messages.append({"role": "user", "content":
+                                 "Use the tools to make the change, then call done."})
+                print(f"{lane}  turn {stats['turns']}/{args.max_turns}  no tool call; nudging",
+                      file=sys.stderr)
+                continue
+            return "ok"  # nothing changed; the wrapper reports the no-op
+
+        finished = False
+        summary = []
+        for call in calls:
+            fn = call.get("function") or {}
+            name = fn.get("name", "")
+            try:
+                targs = json.loads(fn.get("arguments") or "{}")
+                if not isinstance(targs, dict):
+                    raise ValueError("arguments must be an object")
+            except ValueError as exc:
+                result = f"error: could not parse arguments: {exc}"
+            else:
+                if name == "done":
+                    finished = True
+                    result = "ok"
+                else:
+                    try:
+                        result = ws.run(name, targs)
+                        if name in MUTATING:
+                            stats["committed"] = True
+                    except ToolError as exc:
+                        result = f"error: {exc}"
+            summary.append(f"{name} {targs.get('path', '') if isinstance(targs, dict) else ''}".strip())
+            messages.append({"role": "tool", "tool_call_id": call.get("id", name),
+                             "content": result})
+        print(f"{lane}  turn {stats['turns']}/{args.max_turns}  {', '.join(summary)}  "
+              f"in {fmt_k(stats['tokens_in'])} out {fmt_k(stats['tokens_out'])}", file=sys.stderr)
+        if finished:
+            return "ok"
+
+
+def doctor() -> int:
+    """One line per direct lane: does a key resolve, and does the gateway answer?"""
+    for prefix, (base, env, entry) in PROVIDERS.items():
+        b = base_url(prefix)
+        if prefix == "api" and not b:
+            print("note  api/ lane: set DELEGATE_BASE_URL and DELEGATE_API_KEY to use it")
+            continue
+        key = resolve_key(prefix)
+        if env and key is None:
+            src = f"{env} unset" + (f", auth.json has no {entry}" if entry else "")
+            print(f"note  {prefix}/ lane: no key ({src})")
+            continue
+        req = urllib.request.Request(f"{b}/models", headers={
+            "Accept": "application/json", "User-Agent": "delegate-agent/1 (work-delegation)",
+            **({"Authorization": f"Bearer {key}"} if key else {})})
+        try:
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                n = len((json.loads(resp.read().decode("utf-8")) or {}).get("data") or [])
+            print(f"PASS  {prefix}/ lane: key resolves, {b} lists {n} models")
+        except urllib.error.HTTPError as exc:
+            print(f"FAIL  {prefix}/ lane: {b}/models answered HTTP {exc.code}")
+        except Exception as exc:  # connection refused, timeout, bad JSON
+            kind = "unreachable" if prefix == "ollama" else "no answer in 3s"
+            print(f"note  {prefix}/ lane: {kind} ({type(exc).__name__})")
+    return 0
+
+
+def main() -> int:
+    if len(sys.argv) == 2 and sys.argv[1] == "--doctor":
+        return doctor()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dir", required=True)
+    ap.add_argument("--lanes", required=True)
+    ap.add_argument("--brief-file", required=True)
+    ap.add_argument("--file", action="append", default=[])
+    ap.add_argument("--budget", type=float, default=480)
+    ap.add_argument("--max-turns", type=int, default=20)
+    ap.add_argument("--request-timeout", type=float, default=120)
+    args = ap.parse_args()
+
+    ws = Workspace(args.dir)
+    with open(args.brief_file, encoding="utf-8") as fh:
+        brief = fh.read()
+    named = [os.path.relpath(os.path.realpath(f), ws.root) for f in args.file]
+    lanes = [l.strip() for l in args.lanes.split(",") if l.strip()]
+    stats = {"lane": None, "lanes_skipped": [], "turns": 0, "tokens_in": 0, "tokens_out": 0,
+             "cost_usd": None, "session": None, "committed": False}
+    deadline = time.monotonic() + args.budget
+    rc = 2
+    skip_kinds: list[str] = []
+    for lane in lanes:
+        prefix = lane.partition("/")[0]
+        if prefix not in PROVIDERS or "/" not in lane:
+            stats["lanes_skipped"].append(f"{lane}: unknown prefix")
+            print(f"lane {lane}: unknown prefix → next", file=sys.stderr)
+            continue
+        stats["lane"] = lane
+        try:
+            run_lane(lane, ws, brief, named, args, deadline, stats)
+            rc = 0
+            break
+        except LaneError as exc:
+            if exc.kind == "turns":
+                print(f"{lane}  {exc}", file=sys.stderr)
+                rc = 8
+                break
+            if stats["committed"]:
+                print(f"{lane}  {exc} after edits began; diff left in place", file=sys.stderr)
+                rc = 6 if exc.kind == "timeout" else 1
+                break
+            stats["lanes_skipped"].append(f"{lane}: {exc}")
+            skip_kinds.append(exc.kind)
+            stats["lane"] = None
+            print(f"lane {lane}: {exc} → next", file=sys.stderr)
+            if deadline - time.monotonic() <= 1:
+                rc = 6
+                break
+    if rc == 2 and skip_kinds and all(k == "timeout" for k in skip_kinds):
+        rc = 6  # every lane stalled: the wrapper's stall code, not "unusable"
+    if rc == 2:
+        print("delegate-agent: no lane usable", file=sys.stderr)
+    out = {k: v for k, v in stats.items() if k not in ("committed", "retried")}
+    out["touched"] = ws.touched
+    print(json.dumps(out))
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main())

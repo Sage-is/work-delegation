@@ -1,0 +1,10 @@
+[
+  {"id": "t1-prose-gen", "file": "docs/backup.md",
+   "brief": "Create docs/backup.md: a guide titled \"Backing Up Your App\", about 40 lines, with exactly three sections in this order: \"## Why Volume-Level Backups Win\" (contrast in-app exports with volume-level backups), \"## Weekly Schedule\" (weekly cadence, three retention rotations, one off-site copy), \"## Restore Drill\" (a monthly drill in three numbered steps). House style: short sentences, active voice, no filler words. Markdown only."},
+  {"id": "t2-prose-rewrite", "file": "docs/upload-guide.md",
+   "brief": "Rewrite the paragraph in docs/upload-guide.md in place. Cut every filler phrase (\"it should be noted\", \"actually\", \"basically\", \"in order to\", \"it is important to note\", and the like). Keep every fact: the admin panel is in the upper right-hand corner, the button is labeled \"Upload\", supported formats include PDF, DOCX, and TXT, and a failed upload should be retried later. Keep the heading unchanged. Short sentences, active voice."},
+  {"id": "t3-py-sweep", "file": "src/metrics.py",
+   "brief": "In src/metrics.py, in place: add a one-line docstring to every function saying what it returns, and move the `import math` from inside zscore to the top of the module. Change nothing else: no renames, no logic changes, no new functions, keep the blank-line layout."},
+  {"id": "t4-py-logic", "file": "src/paginate.py",
+   "brief": "Fix the bug in src/paginate.py: paginate drops the final short page when len(items) is not a multiple of page_size. The docstring already states the intended behaviour. Keep the function name, signature, and docstring. Change nothing else."}
+]

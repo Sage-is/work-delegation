@@ -68,7 +68,7 @@ now deleted at HEAD (commit 498bf0a), awaiting a working delegation path.
 
 ### Correction: the reaper is wrong and unsafe — do not ship it
 
-The uncommitted `reap_orphans` in `skill/scripts/oc-edit` kills bare
+The uncommitted `reap_orphans` in `skill/scripts/delegate-edit` kills bare
 `opencode` processes whose parent is PID 1. Two problems:
 
 - **It would not have worked.** The two processes whose death unblocked the
@@ -94,8 +94,8 @@ under adversarial verification, 0 refuted) produced four devices:
   `pgrep`/`pkill`/`killall`; test kills go through a PID-ledger `kill-mine`
   that refuses unledgered PIDs; the preflight STOPs instead of killing.
 - **C — applied.** The stall oracle is one script,
-  `skill/scripts/oc-stall-verdict`, not prose re-derived per test.
-- **D — declined (Alexander).** The exit-124 blind retry stays in oc-edit
+  `skill/scripts/delegate-stall-verdict`, not prose re-derived per test.
+- **D — declined (Alexander).** The exit-124 blind retry stays in delegate-edit
   despite the finding that under H1 it retries into the surviving child's
   lock and doubles worst-case stall to ~255s. Stall counts are therefore per
   wrapper invocation, never per run-ID. Revisit if T0 confirms H1.
@@ -125,24 +125,24 @@ tracked with the code it describes.
 State a fresh session must know, since none of it is inferable from the repo:
 
 - **Done 2026-08-16 (poka-yoke pass):** the uncommitted `reap_orphans` was
-  reverted (`git checkout -- skill/scripts/oc-edit`) and every installed copy
+  reverted (`git checkout -- skill/scripts/delegate-edit`) and every installed copy
   was removed (`make uninstall` — the reaper had already been deployed to
-  `~/.claude/skills/delegate-edit/scripts/oc-edit` by an earlier
+  `~/.claude/skills/delegate-edit/scripts/delegate-edit` by an earlier
   `make install`). The tree is clean at `5e7bff9` plus `docs/`. Delegation
   entry points stay uninstalled until the gated `make install` in Phase 3.
 - **Sandbox fixtures are gone.** The old test repo lived in a session-scoped
   scratchpad. Recreate a throwaway git repo with a couple of small files
   (`calc.py`, `notes.md`, `greet.sh`) as the test target — never run these
   tests against the real repo.
-- **Wrapper contract:** `oc-edit <dir> <model> "<instruction>" [files...]`;
-  exit codes 1 opencode failure, 2 usage, 3 disabled via `OC_DELEGATE=0`,
+- **Wrapper contract:** `delegate-edit <dir> <model> "<instruction>" [files...]`;
+  exit codes 1 opencode failure, 2 usage, 3 disabled via `DELEGATE=0`,
   4 hardlink refusal, 5 silent no-op, 6 stall.
 - **Known-good models measured 2026-08-16:** free `opencode/big-pickle` and
   `opencode/deepseek-v4-flash-free` at 9s for a 200-word generation; all seven
   free models healthy; 16 of 19 `opencode-go/*` healthy.
 - **Log oracle:** `~/.local/share/opencode/log/opencode.log`. A stall reaches
   `message=init` and never reaches `created id=ses_`. The executable
-  definition is `skill/scripts/oc-stall-verdict` (groups log lines by their
+  definition is `skill/scripts/delegate-stall-verdict` (groups log lines by their
   per-invocation `run=` ID); every test and stall count goes through it, not
   through ad-hoc greps.
 
@@ -207,7 +207,7 @@ refines the remedy. If T0 says network, the fix in Phase 2 changes from
 
 Conditions: Alexander's TUI closed, teammates reported off opencode (sharing
 status still unknown), preflight clean, sandbox fixture repo, every run
-through `oc-stall-verdict`, `t-run` auto-capture armed throughout.
+through `delegate-stall-verdict`, `t-run` auto-capture armed throughout.
 
 Roughly 35 runs, **zero stalls**:
 
@@ -347,11 +347,11 @@ per call is real but irrelevant next to a single avoided stall.
 
 ## Phase 3 — Implement and finish the job
 
-1. Implement the fix the mechanism calls for in `skill/scripts/oc-edit`
+1. Implement the fix the mechanism calls for in `skill/scripts/delegate-edit`
    (`reap_orphans` was already reverted and uninstalled in the poka-yoke
    pass). Then `make install` — it must pass the Makefile's
    `guard-no-name-kills` gate — and verify
-   `! grep -rq reap_orphans ~/.claude/skills/delegate-edit ~/bin/oc-edit`.
+   `! grep -rq reap_orphans ~/.claude/skills/delegate-edit ~/bin/delegate-edit`.
 2. Record the mechanism, the numbers, and the disqualified reaper in
    `RESULTS.md` field notes, replacing the incorrect "gateway weather" entry
    and the overstated "local, not gateway" claim.

@@ -1,0 +1,624 @@
+#!/usr/bin/env bash
+# delegate-edit — hand a file edit to a cheaper model and come back with a diff.
+# Usage: delegate-edit <dir> <lanes> "<brief>" [files...]
+#        delegate-edit --doctor            (verify PATH, skill, hook, keys, ledger, lock)
+#        delegate-edit --unlock [--force]  (report the opencode-path lock; release when stale)
+# Lanes: one model, or a comma list tried in order (direct lanes only):
+#   zen/ go/ nvidia/ openrouter/ ollama/ api/  → direct API through delegate-agent
+#   claude/<model>                             → claude -p with Read, Edit, Write only
+#   anything else (opencode/…, opencode-go/…)  → opencode run, the original path
+# Env: DELEGATE=0 disables delegation entirely (exit 3).
+#      DELEGATE_LOG=<path> moves the ledger; DELEGATE_LOG=0 disables it.
+#      Default ledger: ~/.local/state/delegate/log.jsonl, one JSON line per run.
+#      DELEGATE_BUDGET=<s> wall ceiling for a direct or claude run (default 480;
+#        a whole-document rewrite on a slow lane needs the room, measured 2026-09-04).
+#      DELEGATE_MAX_TURNS=<n> tool turns for a direct or claude run (default 20).
+#      DELEGATE_MAX_USD=<n> hard spend cap for the claude backend (default 0.50).
+#      DELEGATE_NO_INDEX_ADD=1 skips `git add -N` on newly created files.
+# Exit: 1 backend failure, 2 usage or no usable lane, 3 disabled, 4 hardlink refusal,
+#       5 silent no-op, 6 stall / timeout / budget, 7 lock busy (opencode path),
+#       8 max turns, 9 wedged (ran past its ceiling with no session and no diff).
+#      Exit 9 is evidence against this wrapper, not against the model — do not
+#      re-route away from a model that returned it. Exit 6 and 1 print the diff
+#      stat: a failed run can still have landed an edit, so read it first.
+# Creating files: name the new path as a trailing arg and it is seeded as an
+# empty file (parents created); or say "create <path>" in the brief and let the
+# delegate write it. Either way the new file is untracked, so `git diff` alone
+# would show nothing — on success delegate-edit `git add -N`s every file that
+# appeared during the run, making creations visible to the reviewer's diff.
+# Empty seeds are always removed again.
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+AGENT=$HERE/delegate-agent
+
+# GNU coreutils timeout is required on the opencode and claude paths: this
+# wrapper needs -k (SIGKILL after SIGTERM) and process-group signalling. macOS
+# ships no timeout in the base system; Homebrew's coreutils installs it under
+# both names.
+TIMEOUT_BIN=$(command -v timeout || command -v gtimeout || true)
+
+# opencode path only: the gateway intermittently queues a request forever. Cap
+# each attempt, pause, retry once, then fail fast with exit 6.
+DELEGATE_TIMEOUT=${DELEGATE_TIMEOUT:-120}
+DELEGATE_KILL_AFTER=${DELEGATE_KILL_AFTER:-10}
+DELEGATE_BUDGET=${DELEGATE_BUDGET:-480}
+DELEGATE_MAX_TURNS=${DELEGATE_MAX_TURNS:-20}
+
+LOCK="${DELEGATE_LOCK:-/tmp/delegate-$(id -u).lock}"
+DELEGATE_LOCK_WAIT=${DELEGATE_LOCK_WAIT:-90}
+# Longest a run can legitimately hold the lock: two capped attempts, the 15s
+# pause between them, and slack for the git and fingerprint work either side.
+DELEGATE_LOCK_MAX_AGE=${DELEGATE_LOCK_MAX_AGE:-$(( 2 * (DELEGATE_TIMEOUT + DELEGATE_KILL_AFTER) + 60 ))}
+
+# Epoch mtime of a path: BSD stat (macOS) then GNU stat (Linux).
+mtime_of() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
+
+# Stale means the holder is gone, or the lock is older than any run can
+# legitimately take. That single test covers all three ways a lock outlives its
+# owner: a dead holder, a holder that died before writing its pid at all (empty
+# pid file, which the old liveness-only check skipped and then waited out), and
+# a live holder that has wedged. mkdir stamps the directory mtime at creation,
+# so the age is readable from the instant the lock exists — nothing may write
+# into the lock dir after acquire, or the refreshed mtime disables this.
+lock_is_stale() {
+  local pid; pid=$(cat "$1/pid" 2>/dev/null || true)
+  [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null && return 0
+  [ "$(( $(date +%s) - $(mtime_of "$1") ))" -ge "$DELEGATE_LOCK_MAX_AGE" ]
+}
+
+# Reclaim by rename, never by removal in place. mv is atomic and the source
+# vanishes, so of two waiters that both judge a lock stale exactly one wins and
+# the loser falls back to retrying mkdir. Removing in place lets both win and
+# run unserialized — the very hazard the lock exists to prevent. Re-testing the
+# captured directory covers the gap where the holder released and a fresh run
+# acquired in between: that lock is young, so it goes back untouched.
+reclaim_lock() {                         # $1: --force to skip the staleness re-test
+  local victim="$LOCK.stale.$$"
+  rm -rf "$victim"                       # mv onto an existing dir nests inside it
+  mv "$LOCK" "$victim" 2>/dev/null || return 1
+  if [ "${1:-}" != --force ] && ! lock_is_stale "$victim"; then
+    mv "$victim" "$LOCK" 2>/dev/null
+    return 1
+  fi
+  lock_reclaimed=$(cat "$victim/pid" 2>/dev/null || echo unknown)
+  rm -rf "$victim"
+  echo "delegate-edit: reclaimed stale lock from pid $lock_reclaimed" >&2
+}
+
+# Self-check: is this machine fully wired for delegation?
+if [ "${1:-}" = "--doctor" ]; then
+  status=0
+  pass() { echo "PASS  $1"; }
+  fail() { echo "FAIL  $1"; status=1; }
+  command -v opencode >/dev/null 2>&1 && pass "opencode on PATH" || echo "note  opencode not on PATH — opencode/ lanes unavailable"
+  command -v claude >/dev/null 2>&1 && pass "claude on PATH" || echo "note  claude not on PATH — claude/ lanes unavailable"
+  [ -n "$TIMEOUT_BIN" ] && pass "GNU timeout on PATH ($TIMEOUT_BIN)" \
+    || fail "GNU timeout on PATH (brew install coreutils)"
+  command -v delegate-edit >/dev/null 2>&1 && pass "delegate-edit on PATH" || fail "delegate-edit on PATH (run: make install)"
+  [ -x "$AGENT" ] && pass "delegate-agent beside the wrapper" || fail "delegate-agent beside the wrapper (run: make install)"
+  [ -f "$HOME/.claude/skills/delegate-edit/SKILL.md" ] \
+    && pass "delegate-edit skill installed" || fail "delegate-edit skill installed (run: make install)"
+  grep -q delegate-hook "$HOME/.claude/settings.json" 2>/dev/null \
+    && pass "enforce hook registered in ~/.claude/settings.json" \
+    || fail "enforce hook registered in ~/.claude/settings.json"
+  [ "${DELEGATE:-1}" != "0" ] \
+    && pass "delegation armed (DELEGATE unset or 1)" \
+    || fail "delegation armed (kill switch DELEGATE=0 is set)"
+  if [ "${DELEGATE_ENFORCE:-0}" = "1" ]; then
+    pass "enforcement on (DELEGATE_ENFORCE=1)"
+  else
+    echo "note  enforcement off (DELEGATE_ENFORCE unset) — hook stays inert"
+  fi
+  log=${DELEGATE_LOG:-$HOME/.local/state/delegate/log.jsonl}
+  if [ "$log" = "0" ]; then
+    echo "note  ledger disabled (DELEGATE_LOG=0)"
+  elif mkdir -p "$(dirname "$log")" 2>/dev/null && [ -w "$(dirname "$log")" ]; then
+    pass "ledger writable: $log"
+  else
+    fail "ledger writable: $log"
+  fi
+  # Direct lanes: which keys resolve and which gateways answer.
+  [ -x "$AGENT" ] && python3 "$AGENT" --doctor || true
+  # A held lock takes every opencode-path delegation down, so surface it here
+  # rather than letting the next run discover it as exit 7.
+  if [ ! -d "$LOCK" ]; then
+    pass "delegation lock free ($LOCK)"
+  elif lock_is_stale "$LOCK"; then
+    fail "stale lock at $LOCK held by pid $(cat "$LOCK/pid" 2>/dev/null || echo unknown) — run: delegate-edit --unlock"
+  else
+    echo "note  lock held by pid $(cat "$LOCK/pid" 2>/dev/null || echo unknown), age $(( $(date +%s) - $(mtime_of "$LOCK") ))s — an opencode-path delegation is running"
+  fi
+  # Brief economy: delegation only pays when the brief is far smaller than the
+  # artifact. Rising brief sizes mean the expensive model is typing again.
+  if [ "$log" != "0" ] && [ -s "$log" ]; then
+    DELEGATE_D_LOG=$log DELEGATE_D_CAP=$DELEGATE_LOCK_MAX_AGE python3 - <<'PY2' || status=1
+import json, os, statistics
+rows = []
+for line in open(os.environ["DELEGATE_D_LOG"], encoding="utf-8", errors="replace"):
+    try:
+        rows.append(json.loads(line))
+    except Exception:
+        pass
+rows = rows[-50:]
+if not rows:
+    raise SystemExit
+# Implausible durations: a run past the wrapper's own ceiling with nothing to
+# show for it was a wedge, not a model result, and routing decisions are read
+# from these rows. Scanned over the same recent window as the brief economy
+# below, so a fixed wedge ages out instead of failing the doctor forever.
+cap = int(os.environ["DELEGATE_D_CAP"])
+wedges = [r for r in rows
+          if (r.get("duration_s") or 0) > cap
+          and not (r.get("session") and r.get("diff_stat"))]
+if wedges:
+    worst = max(wedges, key=lambda r: r["duration_s"])
+    print(f"FAIL  {len(wedges)} implausible run(s) in the last {len(rows)} — longest "
+          f"{worst['duration_s']}s at {worst['ts']}, logged rc={worst.get('rc')} "
+          f"with no session and no diff")
+    print("      those rows are wrapper wedges, not model results; do not route on them")
+else:
+    print(f"PASS  no implausible durations in the last {len(rows)} runs")
+briefs = [r.get("brief_chars") or len(r.get("instruction", "")) for r in rows]
+med = int(statistics.median(briefs))
+over = sum(1 for b in briefs if b > 2000)
+created = sum(len(r.get("created") or []) for r in rows)
+verdict = "PASS  " if med <= 2000 else "note  "
+print(f"{verdict}brief economy: median {med} chars over last {len(rows)} runs "
+      f"({over} over 2000, {created} file(s) created)")
+if med > 2000:
+    print("      briefs are trending toward dictation — state outcomes and "
+          "point at reference files instead of inlining them")
+raise SystemExit(1 if wedges else 0)
+PY2
+  fi
+  exit "$status"
+fi
+
+# Inspect the opencode-path lock, and release it when it is stale.
+# This signals nothing, ever: freeing the mutex is a directory removal, while
+# deciding that a process should die is a human's call with this report in
+# hand. It prints rather than writing to the ledger — the reclaims worth
+# keeping as evidence are the automatic ones, which ride on their own run's row.
+if [ "${1:-}" = "--unlock" ]; then
+  if [ ! -d "$LOCK" ]; then
+    echo "no lock at $LOCK"
+    exit 0
+  fi
+  echo "lock    $LOCK"
+  echo "holder  $(cat "$LOCK/pid" 2>/dev/null || echo "<none recorded>")"
+  echo "age     $(( $(date +%s) - $(mtime_of "$LOCK") ))s (ceiling ${DELEGATE_LOCK_MAX_AGE}s)"
+  if [ "${2:-}" != "--force" ] && ! lock_is_stale "$LOCK"; then
+    echo "held    the holder looks healthy; wait for it, or force with: delegate-edit --unlock --force" >&2
+    exit 7
+  fi
+  reclaim_lock "${2:-}" || { echo "held    another process reclaimed or replaced it first" >&2; exit 0; }
+  exit 0
+fi
+
+if [ "${DELEGATE:-1}" = "0" ]; then
+  echo "delegate-edit: delegation disabled (DELEGATE=0)" >&2
+  exit 3
+fi
+
+if [ $# -lt 3 ]; then
+  echo "usage: delegate-edit <dir> <lanes> \"<brief>\" [files...]" >&2
+  exit 2
+fi
+
+dir=$1; model=$2; instruction=$3; shift 3
+
+if [ ! -d "$dir" ]; then
+  echo "delegate-edit: no such directory: $dir" >&2
+  exit 2
+fi
+
+# Backend by the first lane's prefix. Comma lists are for direct lanes only:
+# the other two backends own their own loop and cannot hop.
+case "${model%%/*}" in
+  zen|go|nvidia|openrouter|ollama|api) backend=api ;;
+  claude) backend=claude ;;
+  *) backend=opencode ;;
+esac
+if [ "$backend" != api ] && [ "${model#*,}" != "$model" ]; then
+  echo "delegate-edit: comma-separated lanes are for direct prefixes (zen/ go/ nvidia/ openrouter/ ollama/ api/)" >&2
+  exit 2
+fi
+if [ "$backend" != api ] && [ -z "$TIMEOUT_BIN" ]; then
+  echo "delegate-edit: no GNU timeout on PATH — install coreutils (brew install coreutils)" >&2
+  exit 2
+fi
+if [ "$backend" = api ] && [ ! -x "$AGENT" ]; then
+  echo "delegate-edit: delegate-agent missing beside this wrapper ($AGENT) — run: make install" >&2
+  exit 2
+fi
+
+# Brief economy: the savings live in the asymmetry — short spec in, long
+# artifact out. A brief the size of its output means the expensive model
+# already typed the artifact as a prose spec. Warn, never block: the ledger
+# shows no relation between brief size and failure.
+if [ "${#instruction}" -gt 2000 ]; then
+  echo "delegate-edit: WARNING — brief is ${#instruction} chars; state outcomes and invariants, and point the delegate at reference files in $dir instead of inlining them." >&2
+fi
+
+# Ledger: one JSON line per run, written from the EXIT trap so refusals,
+# stalls, and silent no-ops are captured alongside successes.
+DELEGATE_LOG=${DELEGATE_LOG:-$HOME/.local/state/delegate/log.jsonl}
+start_ts=$(date +%s)
+session=""; retries=0; diff_stat=""; lock_held=""; paths=(); seeded=(); created=""
+untracked_before=""; out_file=""; lock_reclaimed=""; wedged=""
+lane=""; lanes_skipped=""; turns=""; tokens_in=""; tokens_out=""; cost_usd=""; touched=()
+brief_file=""
+log_event() {
+  [ "$DELEGATE_LOG" = "0" ] && return 0
+  mkdir -p "$(dirname "$DELEGATE_LOG")" 2>/dev/null || return 0
+  DELEGATE_L_RC=$1 DELEGATE_L_DIR=$dir DELEGATE_L_MODEL=$model DELEGATE_L_INSTRUCTION=$instruction \
+  DELEGATE_L_FILES=$(printf '%s\n' ${paths[@]+"${paths[@]}"}) \
+  DELEGATE_L_SEEDED=$(printf '%s\n' ${seeded[@]+"${seeded[@]}"}) DELEGATE_L_CREATED=$created \
+  DELEGATE_L_SESSION=$session DELEGATE_L_RETRIES=$retries \
+  DELEGATE_L_DURATION=$(( $(date +%s) - start_ts )) DELEGATE_L_DIFF_STAT=$diff_stat \
+  DELEGATE_L_WEDGED=$wedged DELEGATE_L_RECLAIMED=$lock_reclaimed \
+  DELEGATE_L_BACKEND=$backend DELEGATE_L_LANE=$lane DELEGATE_L_SKIPPED=$lanes_skipped \
+  DELEGATE_L_TURNS=$turns DELEGATE_L_TIN=$tokens_in DELEGATE_L_TOUT=$tokens_out DELEGATE_L_COST=$cost_usd \
+  python3 - >> "$DELEGATE_LOG" 2>/dev/null <<'PY' || true
+import json, os, time
+e = os.environ
+num = lambda k, f: f(e[k]) if e.get(k) not in (None, "", "None", "null") else None
+print(json.dumps({
+    "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+    "dir": e["DELEGATE_L_DIR"],
+    "model": e["DELEGATE_L_MODEL"],
+    "backend": e["DELEGATE_L_BACKEND"],
+    "lane": e["DELEGATE_L_LANE"] or None,
+    "lanes_skipped": [s for s in e["DELEGATE_L_SKIPPED"].splitlines() if s],
+    "files": [f for f in e["DELEGATE_L_FILES"].splitlines() if f],
+    "seeded": [f for f in e["DELEGATE_L_SEEDED"].splitlines() if f],
+    "created": [f for f in e["DELEGATE_L_CREATED"].splitlines() if f],
+    "instruction": e["DELEGATE_L_INSTRUCTION"],
+    "brief_chars": len(e["DELEGATE_L_INSTRUCTION"]),
+    "preamble": "v2",
+    "rc": int(e["DELEGATE_L_RC"]),
+    "session": e["DELEGATE_L_SESSION"] or None,
+    "retries": int(e["DELEGATE_L_RETRIES"]),
+    "turns": num("DELEGATE_L_TURNS", int),
+    "tokens_in": num("DELEGATE_L_TIN", int),
+    "tokens_out": num("DELEGATE_L_TOUT", int),
+    "cost_usd": num("DELEGATE_L_COST", float),
+    "duration_s": int(e["DELEGATE_L_DURATION"]),
+    "diff_stat": e["DELEGATE_L_DIFF_STAT"] or None,
+    # The exit code the body reached before the wedge check overrode it, or
+    # None when the run finished inside its ceiling.
+    "wedged": int(e["DELEGATE_L_WEDGED"]) if e["DELEGATE_L_WEDGED"] else None,
+    "lock_reclaimed": e["DELEGATE_L_RECLAIMED"] or None,
+}, ensure_ascii=False))
+PY
+}
+cleanup() {
+  rc=$?
+  # A wedge that logs rc=0 corrupts the routing evidence: ledger 2026-08-21T10:30
+  # records rc=0 at duration_s=66905, an 18.6-hour hang filed as a clean win.
+  # Past the wrapper's own ceiling with neither a session nor a diff to show for
+  # it, the run was wedged, whatever exit status the body reached. A run that
+  # produced both did the work however long it took and keeps its rc; both
+  # observed wedges had neither.
+  # The ceiling is the opencode cap on that path and the run budget on the
+  # others: a direct lane may legitimately run up to DELEGATE_BUDGET seconds.
+  duration=$(( $(date +%s) - start_ts ))
+  ceiling=$DELEGATE_LOCK_MAX_AGE
+  [ "${backend:-opencode}" != opencode ] && ceiling=$(( DELEGATE_BUDGET + 60 ))
+  if [ "$duration" -gt "$ceiling" ] && { [ -z "$session" ] || [ -z "$diff_stat" ]; }; then
+    echo "delegate-edit: WEDGED — ${duration}s against a ${ceiling}s ceiling, with no session or no diff (body exited $rc)" >&2
+    wedged=$rc; rc=9
+  fi
+  if [ "$rc" -ne 0 ]; then
+    # A failed run must not leave seed stubs behind; keep any the model filled.
+    for f in ${seeded[@]+"${seeded[@]}"}; do
+      [ -s "$f" ] || rm -f "$f"
+    done
+  fi
+  [ -n "$out_file" ] && rm -f "$out_file"
+  [ -n "$brief_file" ] && rm -f "$brief_file"
+  [ -n "$lock_held" ] && rm -rf "$LOCK"
+  log_event "$rc" || true
+  exit "$rc"
+}
+trap cleanup EXIT
+
+# Snapshot untracked paths BEFORE seeding, so both seeds and files the delegate
+# invents on its own register as creations after the run.
+untracked_before=$( cd "$dir" && git ls-files --others --exclude-standard 2>/dev/null | sort || true )
+
+# Hardlink guard: editors replace inodes; refuse hardlinked targets.
+file_args=()
+for f in "$@"; do
+  case $f in
+    /*) path=$f ;;
+    *)  path="$dir/$f" ;;
+  esac
+  paths+=("$path")
+  if [ -e "$path" ]; then
+    links=$(stat -f %l "$path" 2>/dev/null || stat -c %h "$path")
+    if [ "$links" -gt 1 ]; then
+      echo "delegate-edit: REFUSED — $path has $links hardlinks; editing breaks the chain" >&2
+      exit 4
+    fi
+  else
+    # Seed create-new targets: opencode's -f refuses nonexistent files.
+    mkdir -p "$(dirname "$path")"
+    : > "$path"
+    seeded+=("$path")
+    echo "delegate-edit: seeded new file $path"
+  fi
+  file_args+=(-f "$path")
+done
+
+preamble="You are performing a single scoped file edit or file creation. Do NOT run any \
+git commands (no add/commit/push/checkout). Do NOT touch files other than those named. \
+Make only the requested change, matching the surrounding style exactly. \
+If a named file is empty or missing, it is a new file: write its complete contents \
+from scratch. Never leave a named file empty."
+
+# Fingerprint the worktree, scoped to the named files when any are named so
+# concurrent runs on different files in one repo do not see each other. With
+# nothing named: tracked diff plus a hash of every untracked or modified file,
+# so edits to not-yet-tracked files are not misread as silent no-ops.
+# The group reads from /dev/null so nothing inside it can ever block on the
+# wrapper's own stdin. Argless `shasum` did exactly that: with no seeded files
+# it took no arguments, fell back to reading stdin, and waited there for an EOF
+# that never came. That is the real shape of the long hangs — 2026-08-19 at 12
+# minutes, 2026-08-21 at 18.6 and 19.2 hours — every one of which logged
+# retries=0 and no session, because the run never reached the backend at all.
+fingerprint() (
+  cd "$dir" || return 0
+  {
+    if [ "${#paths[@]}" -gt 0 ]; then
+      git diff -- "${paths[@]}" 2>/dev/null
+      shasum -a 256 "${paths[@]}" 2>/dev/null
+    else
+      git diff 2>/dev/null
+      git ls-files -om --exclude-standard -z 2>/dev/null \
+        | xargs -0 shasum -a 256 2>/dev/null
+    fi
+  } < /dev/null | shasum -a 256 || true
+)
+before=$(fingerprint)
+
+# Files that appeared during the run are untracked, and `git diff` ignores
+# untracked files — a created file would review as an empty diff. Record each
+# one with intent-to-add so the creation shows up in the reviewer's diff. Then
+# the diff stat, scoped to the named and touched files when any are known.
+report_diff() {
+  untracked_after=$( cd "$dir" && git ls-files --others --exclude-standard 2>/dev/null | sort || true )
+  created=$(comm -13 <(printf '%s\n' "$untracked_before") <(printf '%s\n' "$untracked_after") || true)
+  if [ -n "$created" ]; then
+    echo "--- created ---"
+    printf '%s\n' "$created"
+    if [ "${DELEGATE_NO_INDEX_ADD:-0}" = "1" ]; then
+      echo "delegate-edit: note — new files left untracked (DELEGATE_NO_INDEX_ADD=1); review them with cat, not git diff" >&2
+    else
+      printf '%s\n' "$created" | ( cd "$dir" && xargs -I{} git add -N -- {} ) 2>/dev/null || true
+      echo "delegate-edit: note — intent-to-add recorded so \`git diff\` shows the new files; undo with: git -C $dir reset -- $(printf '%s ' $created)"
+    fi
+  fi
+  echo "--- diff stat ---"
+  local scope=()
+  [ "${#paths[@]}" -gt 0 ] && scope=("${paths[@]}" ${touched[@]+"${touched[@]}"})
+  if [ "${#scope[@]}" -gt 0 ]; then
+    stat_out=$( cd "$dir" && git diff --stat -- "${scope[@]}" 2>/dev/null || true )
+  else
+    stat_out=$(git -C "$dir" diff --stat)
+  fi
+  printf '%s\n' "$stat_out"
+  diff_stat=$(printf '%s\n' "$stat_out" | tail -1 | sed 's/^ *//')
+}
+
+# 124 when SIGTERM ended the child, 137 when the -k SIGKILL had to: timeout
+# signals its own process group, so it dies of its own SIGKILL and reports
+# 128+9. Both mean capped, and 137 must not fall through to the failure path.
+is_capped() { [ "$1" -eq 124 ] || [ "$1" -eq 137 ]; }
+
+# --- backend: opencode run ----------------------------------------------------
+run_opencode() {
+  # A retired model reaches the gateway as a stall, not an error (ledger
+  # 2026-08-21: rc=6 at 256s, then rc=1 at 2s on the same model). Ask the
+  # provider first and fail fast. An empty listing means the check itself
+  # failed (offline, unknown provider) — never block a run on that.
+  local avail
+  avail=$("$TIMEOUT_BIN" 15 opencode models "${model%%/*}" 2>/dev/null || true)
+  if [ -n "$avail" ] && ! printf '%s\n' "$avail" | grep -qx "$model"; then
+    echo "delegate-edit: no such model: $model — ${model%%/*} offers:" >&2
+    printf '%s\n' "$avail" | sed 's/^/  /' >&2
+    return 2
+  fi
+
+  # Deny git and destructive commands at the permission layer; --auto approves the rest.
+  # Rule order matters: LAST matching rule wins, so "*":"allow" goes first.
+  export OPENCODE_PERMISSION='{
+    "bash": {
+      "*": "allow",
+      "git*": "deny",
+      "rm -rf*": "deny",
+      "opencode*": "deny"
+    },
+    "edit": "allow",
+    "webfetch": "deny",
+    "websearch": "deny"
+  }'
+
+  # One opencode-path delegation at a time, machine-wide. Phase 1 (2026-08-16,
+  # docs/stall-investigation.md) never reproduced a stall without multiple live
+  # instances, so serialization is the no-regrets guard. mkdir is atomic; macOS
+  # has no flock. A stale holder's lock is reclaimed; a working one is respected.
+  local waited=0 tries=0
+  until mkdir "$LOCK" 2>/dev/null; do
+    # Capped: an unremovable lock dir (root-owned, from one sudo run) would
+    # otherwise spin here forever and never reach the exit-7 path below.
+    if [ "$tries" -lt 5 ] && lock_is_stale "$LOCK"; then
+      tries=$(( tries + 1 )); reclaim_lock || true; continue
+    fi
+    if [ "$waited" -ge "$DELEGATE_LOCK_WAIT" ]; then
+      echo "delegate-edit: another delegation holds the lock (pid $(cat "$LOCK/pid" 2>/dev/null || echo unknown)) after ${waited}s; inspect it with 'delegate-edit --unlock', or edit inline" >&2
+      return 7
+    fi
+    sleep 2; waited=$((waited + 2))
+  done
+  lock_held=1
+  printf '%s\n' $$ > "$LOCK/pid"
+
+  # --pure skips external plugins: the antigravity auth plugin rewrites its
+  # state file on every non-pure bootstrap (T3: 5/5), and every model family
+  # delegation routes to works without it.
+  #
+  # Never capture this with $(...). Command substitution holds the stdout pipe
+  # open until EVERY descendant closes it, so one surviving grandchild blocks the
+  # wrapper long past the cap. -k then sends SIGKILL after SIGTERM — without it
+  # timeout waits forever on a child that ignores SIGTERM (the 18.6h wedge).
+  out_file=$(mktemp "${TMPDIR:-/tmp}/delegate-edit-out.XXXXXX")
+  run_once() {
+    "$TIMEOUT_BIN" -k "$DELEGATE_KILL_AFTER" "$DELEGATE_TIMEOUT" opencode run "$preamble
+
+$instruction" --dir "$dir" -m "$model" --auto --format json --pure ${file_args[@]+"${file_args[@]}"} > "$out_file" 2>&1
+  }
+  local rc=0 out
+  run_once || rc=$?
+  if is_capped "$rc"; then
+    echo "delegate-edit: no response in ${DELEGATE_TIMEOUT}s (rc $rc); retrying once after 15s pause" >&2
+    sleep 15
+    retries=1
+    rc=0; run_once || rc=$?
+    if is_capped "$rc"; then
+      echo "delegate-edit: gateway stall on $model (2 attempts); pick another lane or edit inline" >&2
+      return 6
+    fi
+  fi
+  out=$(cat "$out_file")
+  if [ "$rc" -ne 0 ]; then
+    echo "delegate-edit: opencode run failed" >&2
+    printf '%s\n' "$out" | tail -20 >&2
+    return 1
+  fi
+  session=$(printf '%s' "$out" | grep -o '"sessionID":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+  echo "session: ${session:-unknown}"
+  return 0
+}
+
+# --- backend: direct API through delegate-agent ------------------------------
+run_api() {
+  brief_file=$(mktemp "${TMPDIR:-/tmp}/delegate-edit-brief.XXXXXX")
+  printf '%s' "$instruction" > "$brief_file"
+  local agent_files=() rc=0
+  for p in ${paths[@]+"${paths[@]}"}; do agent_files+=(--file "$p"); done
+  out_file=$(mktemp "${TMPDIR:-/tmp}/delegate-edit-out.XXXXXX")
+  python3 "$AGENT" --dir "$dir" --lanes "$model" --brief-file "$brief_file" \
+    ${agent_files[@]+"${agent_files[@]}"} --budget "$DELEGATE_BUDGET" \
+    --max-turns "$DELEGATE_MAX_TURNS" > "$out_file" || rc=$?
+  # The agent's last stdout line is its JSON summary; everything else was stderr.
+  local summary
+  summary=$(tail -1 "$out_file")
+  eval "$(printf '%s' "$summary" | python3 -c '
+import json, shlex, sys
+try:
+    d = json.loads(sys.stdin.read() or "{}")
+except ValueError:
+    d = {}
+def q(v): return shlex.quote("" if v is None else str(v))
+print("lane=" + q(d.get("lane")))
+print("lanes_skipped=" + q("\n".join(d.get("lanes_skipped") or [])))
+print("turns=" + q(d.get("turns")))
+print("tokens_in=" + q(d.get("tokens_in")))
+print("tokens_out=" + q(d.get("tokens_out")))
+print("cost_usd=" + q(d.get("cost_usd")))
+print("session=" + q(d.get("session")))
+print("touched=(" + " ".join(q(t) for t in (d.get("touched") or [])) + ")")
+')"
+  [ -n "$lane" ] && echo "lane: $lane${lanes_skipped:+ (skipped: $(printf '%s' "$lanes_skipped" | tr '\n' ';'))}"
+  return "$rc"
+}
+
+# --- backend: claude -p -------------------------------------------------------
+run_claude() {
+  # --tools keeps Bash out; --max-budget-usd is the hard cost stop.
+  # DELEGATE_NESTED=1 tells the enforce hook this is the typist, not the
+  # orchestrator, so it must not bounce the nested Write back to delegation.
+  # (--bare would skip hooks too, but it also skips keychain reads and the
+  # nested claude then has no login. Measured 2026-09-04.)
+  local m=${model#claude/} rc=0
+  out_file=$(mktemp "${TMPDIR:-/tmp}/delegate-edit-out.XXXXXX")
+  echo "lane: $model (claude -p, tools Read Edit Write, budget ${DELEGATE_BUDGET}s, cap \$${DELEGATE_MAX_USD:-0.50})"
+  ( cd "$dir" && DELEGATE_NESTED=1 "$TIMEOUT_BIN" -k 10 "$DELEGATE_BUDGET" claude -p "$preamble
+
+$instruction
+Target files: ${paths[*]:-any named in the brief}" \
+      --model "$m" --tools "Read Edit Write" --permission-mode acceptEdits \
+      --max-turns "$DELEGATE_MAX_TURNS" --max-budget-usd "${DELEGATE_MAX_USD:-0.50}" \
+      --no-session-persistence --output-format json ) > "$out_file" 2>&1 || rc=$?
+  if is_capped "$rc"; then
+    echo "delegate-edit: claude did not finish inside ${DELEGATE_BUDGET}s" >&2
+    return 6
+  fi
+  eval "$(python3 - "$out_file" <<'PY'
+import json, shlex, sys
+raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+d = {}
+for line in reversed(raw.splitlines()):
+    try:
+        d = json.loads(line); break
+    except ValueError:
+        continue
+q = lambda v: shlex.quote("" if v is None else str(v))
+u = d.get("usage") or {}
+print("session=" + q(d.get("session_id")))
+print("turns=" + q(d.get("num_turns")))
+print("tokens_in=" + q(u.get("input_tokens")))
+print("tokens_out=" + q(u.get("output_tokens")))
+print("cost_usd=" + q(d.get("total_cost_usd")))
+print("claude_error=" + q("1" if d.get("is_error") or d.get("subtype") not in (None, "success") else ""))
+print("claude_result=" + q((d.get("result") or "")[:300]))
+PY
+)"
+  lane=$model
+  if [ "$rc" -ne 0 ] || [ -n "${claude_error:-}" ]; then
+    echo "delegate-edit: claude run failed (rc $rc): ${claude_result:-$(tail -5 "$out_file")}" >&2
+    return 1
+  fi
+  echo "session: ${session:-unknown}  turns: ${turns:-?}  cost: \$${cost_usd:-?}"
+  return 0
+}
+
+echo "delegate-edit: $backend  $model  brief ${#instruction} chars  files ${#paths[@]}" >&2
+rc=0
+case $backend in
+  opencode) run_opencode || rc=$? ;;
+  api)      run_api      || rc=$? ;;
+  claude)   run_claude   || rc=$? ;;
+esac
+
+# Sweep build artifacts the model may leave from verifying its own edit.
+find "$dir" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+
+# Drop seeds the delegate never filled, before anything else reads the tree.
+for f in ${seeded[@]+"${seeded[@]}"}; do
+  if [ -e "$f" ] && [ ! -s "$f" ]; then
+    rm -f "$f"
+    echo "delegate-edit: removed unfilled seed $f" >&2
+  fi
+done
+
+# Usage-level failures have nothing to show; everything else may have landed
+# an edit before it failed, so the diff is reported on every other exit.
+case $rc in 2|3|4|7) exit "$rc" ;; esac
+
+if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  after=$(fingerprint)
+  if [ "$rc" -eq 0 ] && [ "$before" = "$after" ] && [ "${#touched[@]}" -eq 0 ]; then
+    echo "delegate-edit: WARNING — no changes detected (silent no-op)" >&2
+    exit 5
+  fi
+  report_diff
+else
+  echo "delegate-edit: note — $dir is not a git repo; cannot show diff" >&2
+  for f in ${seeded[@]+"${seeded[@]}"}; do
+    [ -s "$f" ] && echo "delegate-edit: created $f"
+  done
+fi
+exit "$rc"

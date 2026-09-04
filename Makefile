@@ -38,30 +38,46 @@ CONTAINER := $(PROJECT)-$(BRANCH)
 CLAUDE_SKILL_DIR   := $(HOME)/.claude/skills/delegate-edit
 CODEX_PROMPT_DIR   := $(HOME)/.codex/prompts
 OPENCODE_CMD_DIR   := $(HOME)/.config/opencode/command
+PI_PROMPT_DIR      := $(HOME)/.pi/agent/prompts
+PI_SKILL_DIR       := $(HOME)/.pi/agent/skills/delegate-edit
 BIN_DIR            := $(HOME)/bin
 
-install: install-claude install-codex install-opencode install-bin
-	@echo "OK: installed for Claude Code, Codex, and opencode."
+install: migrate-names install-claude install-codex install-opencode install-pi install-bin
+	@echo "OK: installed for Claude Code, Codex, opencode, and Pi."
+
+# One-time cleanup from the oc-* names (2026-09-04). Old binaries and installed
+# scripts go; the ledger keeps its history under the new path. Idempotent.
+migrate-names:
+	@rm -f $(BIN_DIR)/oc-edit $(BIN_DIR)/oc-stall-verdict
+	@rm -f $(CLAUDE_SKILL_DIR)/scripts/oc-edit $(CLAUDE_SKILL_DIR)/scripts/oc-stall-verdict \
+		$(CLAUDE_SKILL_DIR)/scripts/oc-delegate-hook.sh
+	@if [ -f $(HOME)/.local/state/oc-edit/log.jsonl ]; then \
+		mkdir -p $(HOME)/.local/state/delegate; \
+		mv -n $(HOME)/.local/state/oc-edit/log.jsonl $(HOME)/.local/state/delegate/log.jsonl; \
+		rmdir $(HOME)/.local/state/oc-edit 2>/dev/null || true; \
+		echo "OK: ledger moved to ~/.local/state/delegate/log.jsonl"; fi
 
 # Hard gate: never install a wrapper that kills processes by name.
 # A name-based sweep already killed the user's interactive TUI once
 # (docs/stall-investigation.md). PID-tree kills use kill + ps -o pid=,ppid=.
 guard-no-name-kills:
-	@! grep -nE 'pgrep|pkill|killall' skill/scripts/oc-edit skill/scripts/oc-delegate-hook.sh \
+	@! grep -nE 'pgrep|pkill|killall' skill/scripts/delegate-edit skill/scripts/delegate-agent skill/scripts/delegate-hook.sh \
 		|| { echo "REFUSED: name-based kill in wrapper (hard gate, docs/stall-investigation.md)"; exit 1; }
 
 install-bin: guard-no-name-kills
 	@mkdir -p $(BIN_DIR)
-	install -m 0755 skill/scripts/oc-edit $(BIN_DIR)/oc-edit
-	install -m 0755 skill/scripts/oc-stall-verdict $(BIN_DIR)/oc-stall-verdict
-	@echo "OK: $(BIN_DIR)/oc-edit"
+	install -m 0755 skill/scripts/delegate-edit $(BIN_DIR)/delegate-edit
+	install -m 0755 skill/scripts/delegate-agent $(BIN_DIR)/delegate-agent
+	install -m 0755 skill/scripts/delegate-stall-verdict $(BIN_DIR)/delegate-stall-verdict
+	@echo "OK: $(BIN_DIR)/delegate-edit"
 
 install-claude: guard-no-name-kills
 	@mkdir -p $(CLAUDE_SKILL_DIR)/scripts
 	install -m 0644 skill/SKILL.md $(CLAUDE_SKILL_DIR)/SKILL.md
-	install -m 0755 skill/scripts/oc-edit $(CLAUDE_SKILL_DIR)/scripts/oc-edit
-	install -m 0755 skill/scripts/oc-stall-verdict $(CLAUDE_SKILL_DIR)/scripts/oc-stall-verdict
-	install -m 0755 skill/scripts/oc-delegate-hook.sh $(CLAUDE_SKILL_DIR)/scripts/oc-delegate-hook.sh
+	install -m 0755 skill/scripts/delegate-edit $(CLAUDE_SKILL_DIR)/scripts/delegate-edit
+	install -m 0755 skill/scripts/delegate-agent $(CLAUDE_SKILL_DIR)/scripts/delegate-agent
+	install -m 0755 skill/scripts/delegate-stall-verdict $(CLAUDE_SKILL_DIR)/scripts/delegate-stall-verdict
+	install -m 0755 skill/scripts/delegate-hook.sh $(CLAUDE_SKILL_DIR)/scripts/delegate-hook.sh
 	@echo "OK: $(CLAUDE_SKILL_DIR)"
 
 install-codex:
@@ -74,18 +90,39 @@ install-opencode:
 	install -m 0644 harness/opencode/delegate-edit.md $(OPENCODE_CMD_DIR)/delegate-edit.md
 	@echo "OK: $(OPENCODE_CMD_DIR)/delegate-edit.md"
 
+# Pi reads prompt templates from ~/.pi/agent/prompts and Agent Skills from
+# ~/.pi/agent/skills, so it gets the /delegate-edit command and the same skill
+# directory Claude Code gets. Installed whether or not pi is present yet.
+install-pi: guard-no-name-kills
+	@mkdir -p $(PI_PROMPT_DIR) $(PI_SKILL_DIR)/scripts
+	install -m 0644 harness/pi/delegate-edit.md $(PI_PROMPT_DIR)/delegate-edit.md
+	install -m 0644 skill/SKILL.md $(PI_SKILL_DIR)/SKILL.md
+	install -m 0755 skill/scripts/delegate-edit $(PI_SKILL_DIR)/scripts/delegate-edit
+	install -m 0755 skill/scripts/delegate-agent $(PI_SKILL_DIR)/scripts/delegate-agent
+	@echo "OK: $(PI_PROMPT_DIR)/delegate-edit.md and $(PI_SKILL_DIR)"
+
 doctor:
-	@$(BIN_DIR)/oc-edit --doctor
+	@$(BIN_DIR)/delegate-edit --doctor
 
 # Not a prerequisite of install: guard-no-name-kills stays the only gate there.
 test:
 	@bash tests/lock.sh
+	@bash tests/agent.sh
+	@bash tests/wrapper.sh
+	@bash tests/hook.sh
+
+# The measurement: make matrix LANES=go/deepseek-v4-flash,ollama/qwen3.5:9b
+# Four tasks per lane through the real wrapper; rows land in results/matrix-<date>.md.
+matrix:
+	@bash tests/matrix/run.sh "$(LANES)"
 
 uninstall:
 	rm -rf $(CLAUDE_SKILL_DIR)
-	rm -f $(BIN_DIR)/oc-edit
+	rm -f $(BIN_DIR)/delegate-edit $(BIN_DIR)/delegate-agent $(BIN_DIR)/delegate-stall-verdict
 	rm -f $(CODEX_PROMPT_DIR)/delegate-edit.md
 	rm -f $(OPENCODE_CMD_DIR)/delegate-edit.md
+	rm -rf $(PI_SKILL_DIR)
+	rm -f $(PI_PROMPT_DIR)/delegate-edit.md
 	@echo "OK: removed from every harness."
 
 # 5. show_vars + verify (debug / one-shot self-check)
@@ -145,5 +182,5 @@ things_clean:
 .PHONY: help show_vars verify require_gitflow_next \
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
-	install install-all install-bin install-claude install-codex install-opencode \
-	doctor test uninstall guard-no-name-kills
+	install install-all install-bin install-claude install-codex install-opencode install-pi \
+	migrate-names doctor test matrix uninstall guard-no-name-kills

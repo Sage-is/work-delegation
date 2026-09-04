@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Regression suite for the run cap and the lock reclaim.
 #
-# Runs the repo copy of oc-edit against a throwaway git repo with a shimmed
+# Runs the repo copy of delegate-edit against a throwaway git repo with a shimmed
 # opencode on PATH. It never reaches the gateway, never touches the real lock,
-# and never writes to the real ledger — every case exports both OC_LOCK and
-# OC_LOG into the scratch root, because one missed export would wedge the
+# and never writes to the real ledger — every case exports both DELEGATE_LOCK and
+# DELEGATE_LOG into the scratch root, because one missed export would wedge the
 # developer's own machine or file fake rows as routing evidence.
 #
 # Every process this script starts is recorded and stopped by its own pid. A
@@ -13,7 +13,7 @@
 set -uo pipefail
 
 ROOT=$(git rev-parse --show-toplevel)
-OC=$ROOT/skill/scripts/oc-edit
+OC=$ROOT/skill/scripts/delegate-edit
 T=$(mktemp -d "${TMPDIR:-/tmp}/oc-test.XXXXXX")
 LOCK=$T/lock
 LOG=$T/log.jsonl
@@ -35,11 +35,11 @@ check() { [ "$2" = "$3" ] && ok "$1 ($2)" || bad "$1 (want $3, got $2)"; }
 mkdir -p "$T/bin"
 cat > "$T/bin/opencode" <<'SHIM'
 #!/usr/bin/env bash
-# Stands in for the real CLI. `models` satisfies oc-edit's preflight; the run
+# Stands in for the real CLI. `models` satisfies delegate-edit's preflight; the run
 # modes reproduce one gateway behaviour each.
 [ "${1:-}" = models ] && { echo "test/model"; exit 0; }
-case "${OC_TEST_MODE:-edit}" in
-  edit)  echo '{"sessionID":"ses_test"}'; echo delegated >> "$OC_TEST_TARGET" ;;
+case "${DELEGATE_TEST_MODE:-edit}" in
+  edit)  echo '{"sessionID":"ses_test"}'; echo delegated >> "$DELEGATE_TEST_TARGET" ;;
   noop)  sleep 2; echo '{"sessionID":"ses_test"}' ;;   # answers, changes nothing
   hang)  trap "" TERM; sleep 600 & sleep 600 ;;        # ignores SIGTERM, has a grandchild
 esac
@@ -52,13 +52,13 @@ git -C "$T/repo" init -q
 echo base > "$T/repo/f.md"
 git -C "$T/repo" add -A
 git -C "$T/repo" -c user.email=t@t -c user.name=t commit -qm base
-export OC_TEST_TARGET=$T/repo/f.md
+export DELEGATE_TEST_TARGET=$T/repo/f.md
 
 # Run the wrapper with the scratch lock and ledger, capped so a regression
 # fails the suite instead of hanging it. Echoes the exit code.
 run() {
   local secs=$1; shift
-  OC_LOCK=$LOCK OC_LOG=$LOG timeout "$secs" bash "$OC" "$@" >/dev/null 2>&1
+  DELEGATE_LOCK=$LOCK DELEGATE_LOG=$LOG timeout "$secs" bash "$OC" "$@" >/dev/null 2>&1
   echo $?
 }
 # A live process to stand in for a lock holder. Recorded, never searched for.
@@ -93,26 +93,26 @@ check "2 aged lock reclaims" "$(run 60 "$T/repo" test/model 'edit f.md' f.md)" 0
 reset
 live=$(holder)
 seed_lock "$live"
-check "3 healthy lock respected" "$(OC_LOCK_WAIT=4 run 60 "$T/repo" test/model 'edit f.md' f.md)" 7
+check "3 healthy lock respected" "$(DELEGATE_LOCK_WAIT=4 run 60 "$T/repo" test/model 'edit f.md' f.md)" 7
 check "3 lock left intact" "$(cat "$LOCK/pid")" "$live"
 
 # 4. The original bug: a child that ignores SIGTERM and leaves a grandchild
 #    holding the stdout pipe. On the pre-fix wrapper this never returns.
 reset
 check "4 SIGTERM-proof stall is capped" \
-  "$(OC_TEST_MODE=hang OC_TIMEOUT=2 OC_KILL_AFTER=2 run 45 "$T/repo" test/model 'edit f.md' f.md)" 6
+  "$(DELEGATE_TEST_MODE=hang DELEGATE_TIMEOUT=2 DELEGATE_KILL_AFTER=2 run 45 "$T/repo" test/model 'edit f.md' f.md)" 6
 
 # 5. Implausible duration is rewritten to exit 9, and keeps the body's code.
 #    A ceiling of 0 makes every run overrun; the shim answers but edits nothing.
 reset
 check "5 overrun with no diff is wedged" \
-  "$(OC_TEST_MODE=noop OC_LOCK_MAX_AGE=0 run 60 "$T/repo" test/model 'edit f.md' f.md)" 9
+  "$(DELEGATE_TEST_MODE=noop DELEGATE_LOCK_MAX_AGE=0 run 60 "$T/repo" test/model 'edit f.md' f.md)" 9
 check "5 body's exit code kept" "$(last_row wedged)" 5
 
 # 6. Real work is never called a wedge, however long it took.
 reset
 check "6 overrun with a diff keeps rc=0" \
-  "$(OC_LOCK_MAX_AGE=0 run 60 "$T/repo" test/model 'edit f.md' f.md)" 0
+  "$(DELEGATE_LOCK_MAX_AGE=0 run 60 "$T/repo" test/model 'edit f.md' f.md)" 0
 
 # 7. A stdin that never reaches EOF must not hang the run. Argless shasum in
 #    fingerprint() read the wrapper's own stdin and blocked there, before
@@ -122,7 +122,7 @@ reset
 mkfifo "$T/fifo"
 exec 9<> "$T/fifo"
 check "7 open stdin does not hang the run" \
-  "$(OC_LOCK=$LOCK OC_LOG=$LOG timeout 20 bash "$OC" "$T/repo" test/model 'edit f.md' f.md \
+  "$(DELEGATE_LOCK=$LOCK DELEGATE_LOG=$LOG timeout 20 bash "$OC" "$T/repo" test/model 'edit f.md' f.md \
       < "$T/fifo" >/dev/null 2>&1; echo $?)" 0
 
 # 8. --unlock reports a healthy lock and refuses it; --force releases.
@@ -130,9 +130,9 @@ reset
 live=$(holder)
 seed_lock "$live"
 check "8 --unlock refuses a healthy lock" \
-  "$(OC_LOCK=$LOCK OC_LOG=$LOG bash "$OC" --unlock >/dev/null 2>&1; echo $?)" 7
+  "$(DELEGATE_LOCK=$LOCK DELEGATE_LOG=$LOG bash "$OC" --unlock >/dev/null 2>&1; echo $?)" 7
 check "8 --unlock --force releases" \
-  "$(OC_LOCK=$LOCK OC_LOG=$LOG bash "$OC" --unlock --force >/dev/null 2>&1; echo $?)" 0
+  "$(DELEGATE_LOCK=$LOCK DELEGATE_LOG=$LOG bash "$OC" --unlock --force >/dev/null 2>&1; echo $?)" 0
 [ -d "$LOCK" ] && bad "8 lock removed by --force" || ok "8 lock removed by --force"
 
 # ----------------------------------------------------------------------------

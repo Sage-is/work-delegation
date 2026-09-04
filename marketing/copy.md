@@ -18,4 +18,4 @@ work-delegation hands bulk file typing to a free model while your paid assistant
 
 ## Elevator pitch
 
-Bulk typing burns premium tokens that a free model could handle. You write a brief naming the target files and the exact change. oc-edit hands it to opencode running headless on a free model. The model edits and returns a diff. You review it before anything counts as done. In an 8-run matrix the free tier scored 4 for 4, 7 to 15 seconds per task, zero retries, zero cost, quality matching the paid tier. Keep judgment on the expensive model. Let the free model type.
+Bulk typing burns premium tokens that a free model could handle. You write a brief naming the target files and the exact change. delegate-edit hands it to opencode running headless on a free model. The model edits and returns a diff. You review it before anything counts as done. In an 8-run matrix the free tier scored 4 for 4, 7 to 15 seconds per task, zero retries, zero cost, quality matching the paid tier. Keep judgment on the expensive model. Let the free model type.
