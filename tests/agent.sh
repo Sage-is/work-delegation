@@ -122,6 +122,16 @@ check "9b nvidia bare id completed" "$(python3 -c "import json; print(json.loads
 NVIDIA_API_KEY=k agent --lanes nvidia/moonshotai/kimi-k3 > /dev/null
 check "9b nvidia vendor id kept" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['body']['model'])")" moonshotai/kimi-k3
 
+# 9c. zen/ lanes lead with the opencode client identity; others do not.
+reset_repo
+script '[{"tool":"done","args":{"summary":"ok"}}]'
+OPENCODE_API_KEY=k agent --lanes zen/m1 > /dev/null
+ua=$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['headers'].get('User-Agent',''))")
+check "9c zen UA starts with opencode/" "$(printf '%s' "$ua" | grep -c '^opencode/[0-9]')" 1
+check "9c zen UA still names us" "$(printf '%s' "$ua" | grep -c 'delegate-agent/1')" 1
+agent --lanes api/m1 > /dev/null
+check "9c other lanes keep our UA" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['headers'].get('User-Agent',''))")" "delegate-agent/1 (work-delegation)"
+
 # 10. Two agents at once in one repo, each on its own file.
 reset_repo
 script '[{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"}},{"tool":"done","args":{"summary":"ok"}},{"tool":"write","args":{"path":"g.md","content":"second"}},{"tool":"done","args":{"summary":"ok"}}]'

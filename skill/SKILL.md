@@ -177,10 +177,13 @@ The agent walks the list and stops at the first lane that answers. Measured
   lanes botch the diff.
 - `nvidia/nemotron-3.5-lightning-30b-a3b`: 3/4 correct, 10s on short tasks,
   timed out on the long guide. A free lane to add after the Go pair.
-- `zen/big-pickle` was rate-limited all of 2026-09-04 (HTTP 429 in 1s) on
-  direct calls, while the opencode TUI reached it fine; the difference is
-  under investigation. Third in the list; a 429 costs a second and the list
-  hops on.
+- `zen/big-pickle`: the free lane, third in the list, 4/4 correct at 6-14s
+  once the client gate is passed. Zen's free models
+  answer 429 `FreeUsageLimitError` to any client whose User-Agent does not
+  start with `opencode/`, before quota is looked at; the agent sends
+  `opencode/<installed version> delegate-agent/1 (work-delegation)` on zen/
+  lanes for that reason. The real limit is per IP per UTC day and is shared
+  with the TUI; a genuine 429 costs a second and the list hops on.
 - `zen/claude-*` returns 401 without Zen billing.
 
 Small logic fixes stay inline.

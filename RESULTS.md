@@ -162,17 +162,33 @@ into `tests/matrix/` and run with `make matrix` (`results/matrix-2026-09-04.md`)
 | `go/glm-5.3-flash` | 3/4 (t2 dropped the "upper right" fact) | 6-35 | Go subscription |
 | `ollama/qwen3.5:9b` | 2/4 (t2 kept "actually"; t4 timed out) | 17-124 | $0 |
 | `nvidia/nemotron-3.5-lightning-30b-a3b` | 3/4 (t1 timed out at 120s; t3 took 8 turns) | 10-137 | NIM free tier, 40 req/min |
-| `zen/big-pickle` | 0/4, HTTP 429 in 1s every time | 1 | $0 |
+| `zen/big-pickle` (after the User-Agent fix) | 4/4 | 6-14 | $0 |
 | `zen/claude-haiku-4-5` | 0/4, HTTP 401 | 1 | needs Zen billing |
 
 Default lane list: `go/deepseek-v4-flash,go/kimi-k3,zen/big-pickle`. Deepseek
-first is Alexander's call (fastest; its one miss was length, not a wrong
-edit). The free lane stays in the list because its refusal costs one second.
+first is Alexander's call, made while the free lane looked broken. With the
+User-Agent fix big-pickle is 4/4, 6-14s, and free, the best row in the table;
+putting it first is a one-line change.
 
 Things learned on the way, each now in code or tests:
 
 - Cloudflare in front of opencode.ai answers 403 (error 1010) to Python's
   default `User-Agent`; a named client passes.
+- The free Zen models were never rate-limited that day. The tier behind them
+  answers 429 `FreeUsageLimitError` to any User-Agent that does not start
+  with `opencode/`, before quota is consulted. Same key, same second:
+  `delegate-agent/1` 429 in 0.7s; `opencode/1.18.25` and
+  `opencode/1.18.25 delegate-agent/1 (work-delegation)` both `pong` in about
+  1s. The Zen gateway is open source (anomalyco/opencode, `routes/zen/`): the
+  free limiter is per IP per UTC day, keys and balances play no part, and the
+  UA gate sits in an upstream tier outside the public code; issue #42074 and
+  three third-party proxies document it. Shipped: zen/ lanes send the
+  opencode-prefixed User-Agent. big-pickle then edited the scratch repo in
+  7.6s through the wrapper.
+- The CLI's retry logic honours a 429's `retry-after`, which on the free tier
+  is "seconds until midnight UTC". A real quota hit therefore makes the
+  opencode path sit silently until the cap fires. That is the shape of every
+  257-second stall in the ledger.
 - NIM model ids carry their vendor. A bare `nvidia/nemotron-…` lane lost the
   vendor half and got 404; the agent now completes it.
 - `claude -p --bare` skips keychain reads, so the nested run had no login.

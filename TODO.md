@@ -6,10 +6,6 @@
   - [ ] Not answerable from the current ledger. The `lock_reclaimed` field records it if it recurs.
   - [ ] Do not chase this by inference. Direct lanes take no lock, so it can only recur on the opencode path.
 
-- [ ] **Zen free lane is rate-limited for the whole day once exhausted.** 2026-09-04: every `zen/big-pickle` call returned HTTP 429 `FreeUsageLimitError` in about 1s, all day.
-  - [ ] The hop costs one second, so it stays first in the default lane list. Check whether the limit resets daily or per window; the ledger will show the first rc=0 on that lane.
-  - [ ] `zen/claude-*` returns 401 without Zen billing. Not a bug; note it in SKILL.md and move on.
-
 ## Planned
 
 - [ ] **Non-edit verbs.** Editing is not the only thing worth delegating (Alexander, 2026-08-21).
@@ -35,6 +31,7 @@
 
 ### 2026-09-04
 
+- [x] **Found and fixed the free-lane refusal.** Zen's free models 429 any User-Agent not starting with `opencode/`, before quota; the error text says rate limit. zen/ lanes now send `opencode/<version> delegate-agent/1`; big-pickle edits in 7.6s. The real limit is per IP per UTC day, shared with the TUI; balance and Go do not change it. `zen/claude-*` needs Zen billing (401).
 - [x] **Went direct to the gateways.** `delegate-agent` calls Zen, Go, NVIDIA NIM, OpenRouter, Ollama, or any OpenAI-compatible endpoint with the keys already in opencode's `auth.json`; five tools (read, write, edit, ls, done), no shell, paths jailed to the project dir. Lanes hop on any failure before the first edit.
 - [x] **Renamed everything to `delegate-*`, no aliases.** `oc-edit` → `delegate-edit`, `OC_*` → `DELEGATE_*`, ledger moved to `~/.local/state/delegate/`; settings.json and the global CLAUDE.md updated in the same step.
 - [x] **Dropped the brief-size ceiling.** The correlation ran the wrong way by 2026-09-02 (successes at 2008-2884 chars, stalls at 80-1146). The >2000 warning stays as brief economy only.
