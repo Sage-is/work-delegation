@@ -165,8 +165,9 @@ into `tests/matrix/` and run with `make matrix` (`results/matrix-2026-09-04.md`)
 | `zen/big-pickle` | 0/4, HTTP 429 in 1s every time | 1 | $0 |
 | `zen/claude-haiku-4-5` | 0/4, HTTP 401 | 1 | needs Zen billing |
 
-Default lane list from that table: `zen/big-pickle,go/kimi-k3,go/deepseek-v4-flash`.
-The free lane stays first because its refusal costs one second.
+Default lane list: `go/deepseek-v4-flash,go/kimi-k3,zen/big-pickle`. Deepseek
+first is Alexander's call (fastest; its one miss was length, not a wrong
+edit). The free lane stays in the list because its refusal costs one second.
 
 Things learned on the way, each now in code or tests:
 

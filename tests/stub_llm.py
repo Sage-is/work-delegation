@@ -70,6 +70,7 @@ class H(BaseHTTPRequestHandler):
         STATE["n"] += 1
         with open(RECORD, "a", encoding="utf-8") as fh:
             fh.write(json.dumps({"n": n, "auth": self.headers.get("Authorization"),
+                                 "path": self.path, "headers": dict(self.headers),
                                  "body": body}) + "\n")
         steps = STATE["steps"]
         step = steps[min(n, len(steps) - 1)] if steps else {"text": "ok"}

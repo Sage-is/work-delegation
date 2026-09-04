@@ -4,7 +4,8 @@
 
 Expensive AI models should plan and judge. Cheap models should tug and type.
 
-A toolkit from Sage.is (AGPL-3.0). It lets a slower, more expensive, but smarter orchestrating AI assistant (Claude Code, Codex, opencode, Pi, or similar) hand typing work to cheaper models. The assistant writes a precise work order, called a brief. A small wrapper called delegate-edit hands it to a cheaper model over a direct API call, with five file tools and no shell, and tries the next lane in seconds when one fails. The assistant reviews the resulting git diff before anything counts as done.
+Sage.is Work-Delegation (AGPL-3.0) lets slower, more expensive, smarter orchestrating AI assistants (Claude Code, Codex, opencode, Pi, or similar) hand typing work to cheaper models. The assistant writes a precise work order, called a brief. A small wrapper called delegate-edit hands it to a cheaper model over a direct API call, with five file tools and no shell, and tries the next lane in seconds when one fails. The assistant reviews the resulting git diff before anything counts as done.
+
 
 ## Why
 

@@ -160,23 +160,27 @@ Do NOT delegate:
 Default lanes:
 
 ```bash
-delegate-edit <dir> zen/big-pickle,go/kimi-k3,go/deepseek-v4-flash "<brief>" [files...]
+delegate-edit <dir> go/deepseek-v4-flash,go/kimi-k3,zen/big-pickle "<brief>" [files...]
 ```
 
 The agent walks the list and stops at the first lane that answers. Measured
 2026-09-04 (`results/matrix-2026-09-04.md`):
 
-- `go/kimi-k3`: 4/4 correct, 6-38s per task. The workhorse.
-- `go/deepseek-v4-flash`: 3/4 correct, 7-13s per task. A fine third lane.
+- `go/deepseek-v4-flash`: the go-to (Alexander, 2026-09-04). 3/4 correct at
+  7-13s per task, the fastest lane; its one miss was a guide that came out
+  shorter than asked, not a wrong edit.
+- `go/kimi-k3`: 4/4 correct, 6-38s per task. Second lane, and the one to pick
+  for long prose.
 - `ollama/qwen3.5:9b`: the offline lane. No key, no network. 2/4 correct at
   17-72s with one 90s timeout; a fallback, not a first choice.
 - `claude/sonnet`: 4/4 correct at about $0.10 a task. Use it when the cheap
   lanes botch the diff.
 - `nvidia/nemotron-3.5-lightning-30b-a3b`: 3/4 correct, 10s on short tasks,
   timed out on the long guide. A free lane to add after the Go pair.
-- `zen/big-pickle` was rate-limited all of 2026-09-04 (HTTP 429 in 1s).
-  Listed first so it resumes leading when the limit lifts; the 429 costs a
-  second and the list hops on.
+- `zen/big-pickle` was rate-limited all of 2026-09-04 (HTTP 429 in 1s) on
+  direct calls, while the opencode TUI reached it fine; the difference is
+  under investigation. Third in the list; a 429 costs a second and the list
+  hops on.
 - `zen/claude-*` returns 401 without Zen billing.
 
 Small logic fixes stay inline.
