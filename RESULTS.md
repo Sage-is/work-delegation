@@ -97,3 +97,36 @@ Full detail in `docs/stall-investigation.md`. The short version:
    sets `OC_DELEGATE=1`.
 3. Full off at any time: `OC_DELEGATE=0` (wrapper refuses, hook passes through,
    skill instructs direct edits).
+
+## Field notes — 2026-08-21 (the long hangs)
+
+Three runs had hung for 12 minutes, 18.6 hours, and 19.2 hours, each holding
+the machine-wide lock, each logged `rc=0`. The cause was not the gateway.
+
+- **Argless `shasum` was reading the wrapper's stdin.** `fingerprint()` ran
+  `shasum -a 256 "${seeded[@]}"` with an empty array, so it took no file
+  arguments, fell back to stdin, and blocked there for an EOF that never came.
+  All three hangs show `retries=0` and no session id: the run never reached
+  opencode. The fix is one redirect — the command group now reads `/dev/null`,
+  so nothing inside it can block on stdin again. Reproduced and regression
+  tested (`tests/lock.sh` case 7, which hangs on the pre-fix wrapper).
+- **`$(...)` around a capped command is a second, independent hang.** Command
+  substitution holds the stdout pipe open until every descendant closes it. A
+  1s cap took 4s with one backgrounded grandchild and 0s redirected to a file.
+  Output now goes to a temp file.
+- **`timeout -k` returns 137, not 124.** Against a child that ignores SIGTERM
+  the `-k` SIGKILL sets the code to 128+9. Code that tests only 124 sends every
+  such stall to the generic failure path with no retry — a fix that looks
+  landed and is not.
+- **The brief-size stall correlation did not replicate.** A 528-char brief and
+  a 2069-char brief stalled identically (exit 6 at 258s), on `big-pickle` and
+  `kimi-k3` respectively, minutes apart, while the user reported no trouble
+  with long prompts in the opencode TUI. The `OC_BRIEF_MAX` ceiling rests on
+  20 runs from 2026-08-18 and should be re-derived or dropped.
+- **Exit 6 does not mean nothing happened.** A capped attempt left a completed
+  edit in the worktree. Cleanup only removes unfilled seeds, so the caller must
+  read the diff before editing inline, or risk applying the change twice.
+- **`deepseek-v4-flash-free` was retired by the gateway.** Routing moved to
+  `opencode/big-pickle` (rc=0 in 25s and 76s on two real briefs). The wrapper
+  now checks the model exists before taking the lock, turning a 256s stall into
+  a 3s exit 2.

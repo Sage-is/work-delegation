@@ -18,7 +18,9 @@ Working with the free tier (opencode/deepseek-v4-flash-free): 4/4 correct, zero 
 
 With the paid tier (opencode-go/kimi-k3): 4/4 correct, zero retries, 38-70 seconds per task, cost in cents!
 
-Quality matched at this task size. The free tier wins on speed and cost. Default routing is free first, with kimi-k3 for retries only. Other models can easily be switched to for strenths and privacy.
+Quality matched at this task size. The free tier wins on speed and cost. Default routing is free first, with kimi-k3 for retries only. Other models can easily be switched to for strengths and privacy.
+
+The gateway retired `deepseek-v4-flash-free` on 2026-08-21. Routing now defaults to `opencode/big-pickle`, which did the same work at rc=0 in 76 seconds. The two figures above stand as the 2026-08-15 measurement; they are not a live model list. Run `opencode models opencode` for that.
 
 ## How it works
 

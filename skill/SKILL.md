@@ -77,9 +77,13 @@ prints a `--- created ---` list and the exact `git reset --` undo.
 `OC_NO_INDEX_ADD=1` skips the intent-to-add; review those files with
 `cat` instead.
 
-## Stalls (exit 6) and busy lock (exit 7)
+## Stalls (exit 6), busy lock (exit 7), wedge (exit 9)
 
-The stall signature: the run logs `init` but never `created id=ses_` — `skill/scripts/oc-stall-verdict <command...>` is the executable check. Stalls arrive in short self-clearing windows and correlate with large instruction payloads (docs/stall-investigation.md). On exit 6: do NOT immediately retry — edit inline, or come back minutes later. On exit 7: another delegation is running; wait for it or edit inline. Never kill opencode processes by name; `make install` refuses wrappers that try.
+The stall signature: the run logs `init` but never `created id=ses_` — `skill/scripts/oc-stall-verdict <command...>` is the executable check. Stalls arrive in short self-clearing windows. On exit 6: do NOT immediately retry — edit inline, or come back minutes later. Read the diff first, though: a capped attempt can have finished its edit before the cap fired, so exit 6 does not mean nothing happened. On exit 7: another delegation is running; wait for it, inspect it with `oc-edit --unlock`, or edit inline. Never kill opencode processes by name; `make install` refuses wrappers that try.
+
+Exit 9 means the wrapper itself wedged — it ran past its own ceiling with no session and no diff. That is evidence against the wrapper, not against the model, so do not re-route away from a model that returned it. Report it instead.
+
+The claim that stalls correlate with large instruction payloads (docs/stall-investigation.md) did not survive 2026-08-21: a 528-char brief and a 2069-char brief stalled identically, on two different models, minutes apart. Treat the size heuristic as unproven.
 
 ## When to delegate
 
@@ -96,15 +100,17 @@ Do NOT delegate:
 - Hardlinked files, or anything in bot-owned paths
 - When `OC_DELEGATE=0`
 
-## Routing (validated 2026-08-15)
+## Routing (validated 2026-08-21)
 
 | Task class | First try | Escalate to |
 | --- | --- | --- |
-| Prose gen / rewrite | `opencode/deepseek-v4-flash-free` | `opencode-go/kimi-k3` |
-| Mechanical code sweep | `opencode/deepseek-v4-flash-free` | `opencode-go/kimi-k3` |
+| Prose gen / rewrite | `opencode/big-pickle` | `opencode-go/kimi-k3` (unvalidated) |
+| Mechanical code sweep | `opencode/big-pickle` | `opencode-go/kimi-k3` (unvalidated) |
 | Small logic fix | do it inline | — |
 
-The free tier matched the paid tier on quality across all four task classes and ran 5-7x faster. Escalation to kimi-k3 is for retries only.
+The 2026-08-15 matrix ran on `opencode/deepseek-v4-flash-free`, which the gateway retired on 2026-08-21 (`Model not found`, rc=1 in 2s). `opencode/big-pickle` replaced it on the same brief: rc=0 in 76s. Escalation to kimi-k3 is for retries only and is currently unvalidated — it returned rc=6 at 255s on 2026-08-21. Re-measure before relying on it.
+
+Models are retired without notice. `opencode models opencode` lists what the free provider offers today; the wrapper checks the model exists before it takes the lock, so a retired one exits 2 in about 2 seconds.
 
 ## The brief format
 

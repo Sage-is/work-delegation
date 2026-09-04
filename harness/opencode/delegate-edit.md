@@ -9,11 +9,11 @@ Delegate the requested file edit to a cheap model through the oc-edit wrapper in
 2. Run:
 
    ```sh
-   ~/bin/oc-edit <project-dir> opencode/deepseek-v4-flash-free "<brief>"
+   ~/bin/oc-edit <project-dir> opencode/big-pickle "<brief>"
    ```
 
 3. Read the full git diff, created files included. Never trust the edit blind.
 4. Wrong diff? One retry by re-instructing the same session with `-s <sessionID>`. Still wrong? Revert and edit inline — `git checkout -- <file>` for an edit, `git reset -- <file> && rm <file>` for a creation.
 5. Report done only after the diff passes review.
 
-Never delegate load-bearing logic, small edits, or hardlinked files. Exit 6 is a stall and exit 7 is a busy lock — edit inline instead of retrying into either. OC_DELEGATE=0 disables delegation entirely.
+Never delegate load-bearing logic, small edits, or hardlinked files. Exit 6 is a stall and exit 7 is a busy lock — edit inline instead of retrying into either, but read the diff first, because a capped attempt can have finished its edit before the cap fired. Exit 9 means the wrapper wedged: edit inline and report it, and do not re-route away from the model, which is not what failed. OC_DELEGATE=0 disables delegation entirely.

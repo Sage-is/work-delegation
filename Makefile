@@ -77,6 +77,10 @@ install-opencode:
 doctor:
 	@$(BIN_DIR)/oc-edit --doctor
 
+# Not a prerequisite of install: guard-no-name-kills stays the only gate there.
+test:
+	@bash tests/lock.sh
+
 uninstall:
 	rm -rf $(CLAUDE_SKILL_DIR)
 	rm -f $(BIN_DIR)/oc-edit
@@ -142,4 +146,4 @@ things_clean:
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
 	install install-all install-bin install-claude install-codex install-opencode \
-	doctor uninstall guard-no-name-kills
+	doctor test uninstall guard-no-name-kills
