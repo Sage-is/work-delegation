@@ -16,9 +16,12 @@ The enforcement hook has its own, independent switch: `DELEGATE_ENFORCE=1` arms 
 ## Ledger and doctor
 
 Every run (success or failure) appends one JSON line to
-`~/.local/state/delegate/log.jsonl`: timestamp, dir, model, backend, lane,
-lanes_skipped, files, the full instruction, exit code, session, retries,
-turns, tokens_in, tokens_out, cost_usd, duration, diff stat.
+`~/.local/state/delegate/log.jsonl`: timestamp, run_id, dir, model, backend,
+lane, lanes_skipped, files, created, the full instruction, exit code, session,
+retries, turns, tokens_in, tokens_out, cost_usd, duration, diff stat, and
+diff_file, the run's patch saved under `diffs/` beside the ledger (1 MB cap).
+`make admin` serves the ledger as a web page: search, filter, star, tag, note,
+the diff per run, re-run and revert commands, and stats per lane.
 `DELEGATE_LOG=<path>` moves it; `DELEGATE_LOG=0` disables it. Failure records
 are the routing evidence; do not disable the ledger to "clean up" output.
 

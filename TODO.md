@@ -31,7 +31,11 @@
 
 ### 2026-09-05
 
-- [x] **Ledger app.** `make ledger`: search, filter, star, tag, note, export, stats over the live ledger; startr.style + startr.swap vendored and pinned; nine tests; `make kit_check` fails on pin drift.
+- [x] **1920s art for the README.** Three flat-colour Deco scenes (how it works, the lanes, the admin) and seven single-colour heading emblems, hand-authored SVG in the hero's palette, no lettering; a four-judge panel returned 37 findings, all applied. Files under `docs/art/`.
+- [x] **Emblems: padding, border, night version.** Art inset 8 units in an 80-unit box, 4-unit border on the tile, README size 28 to 32 so the ink weight holds. An inline `prefers-color-scheme` style flips cream tile with navy ink to navy tile with cream ink; it follows the OS preference, not GitHub's theme picker, and both mismatches stay legible.
+- [x] **Delegate admin.** `make admin`: search, filter, star, tag, note, export, stats over the live ledger; the diff of every run, coloured per file; re-run and revert commands to paste; startr.style + startr.swap vendored and pinned; 17 tests; `make kit_check` fails on pin drift. A 70-agent review found 49 real faults before it shipped, the worst being colour tokens from the skill's table that the pinned build does not define.
+- [x] **Patch per run.** The wrapper saves each run's `git diff` under `~/.local/state/delegate/diffs/`, keyed by a run id in the ledger row; `make diffs_prune` after 90 days.
+- [x] **Stats flushed.** `make ledger_archive` moved the 119 test-era rows to a dated archive; what follows is post-fix evidence.
 
 ### 2026-09-04
 

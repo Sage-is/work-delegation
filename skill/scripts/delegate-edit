@@ -17,6 +17,8 @@
 #        a whole-document reply from a slow lane can need more).
 #      DELEGATE_MAX_USD=<n> hard spend cap for the claude backend (default 0.50).
 #      DELEGATE_NO_INDEX_ADD=1 skips `git add -N` on newly created files.
+#      DELEGATE_DIFFS=<dir> where each run's patch is kept for the admin
+#        (default: diffs/ beside the ledger; capped at 1 MB per run).
 # Exit: 1 backend failure, 2 usage or no usable lane, 3 disabled, 4 hardlink refusal,
 #       5 silent no-op, 6 stall / timeout / budget, 7 lock busy (opencode path),
 #       8 max turns, 9 wedged (ran past its ceiling with no session and no diff).
@@ -248,6 +250,8 @@ fi
 # stalls, and silent no-ops are captured alongside successes.
 DELEGATE_LOG=${DELEGATE_LOG:-$HOME/.local/state/delegate/log.jsonl}
 start_ts=$(date +%s)
+run_id=$(date +%Y%m%dT%H%M%S)-$$
+diff_file=""
 session=""; retries=0; diff_stat=""; lock_held=""; paths=(); seeded=(); created=""
 untracked_before=""; out_file=""; lock_reclaimed=""; wedged=""
 lane=""; lanes_skipped=""; turns=""; tokens_in=""; tokens_out=""; cost_usd=""; touched=()
@@ -263,12 +267,14 @@ log_event() {
   DELEGATE_L_WEDGED=$wedged DELEGATE_L_RECLAIMED=$lock_reclaimed \
   DELEGATE_L_BACKEND=$backend DELEGATE_L_LANE=$lane DELEGATE_L_SKIPPED=$lanes_skipped \
   DELEGATE_L_TURNS=$turns DELEGATE_L_TIN=$tokens_in DELEGATE_L_TOUT=$tokens_out DELEGATE_L_COST=$cost_usd \
+  DELEGATE_L_RUN_ID=$run_id DELEGATE_L_DIFF_FILE=$diff_file \
   python3 - >> "$DELEGATE_LOG" 2>/dev/null <<'PY' || true
 import json, os, time
 e = os.environ
 num = lambda k, f: f(e[k]) if e.get(k) not in (None, "", "None", "null") else None
 print(json.dumps({
     "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+    "run_id": e["DELEGATE_L_RUN_ID"],
     "dir": e["DELEGATE_L_DIR"],
     "model": e["DELEGATE_L_MODEL"],
     "backend": e["DELEGATE_L_BACKEND"],
@@ -289,6 +295,7 @@ print(json.dumps({
     "cost_usd": num("DELEGATE_L_COST", float),
     "duration_s": int(e["DELEGATE_L_DURATION"]),
     "diff_stat": e["DELEGATE_L_DIFF_STAT"] or None,
+    "diff_file": e["DELEGATE_L_DIFF_FILE"] or None,
     # The exit code the body reached before the wedge check overrode it, or
     # None when the run finished inside its ceiling.
     "wedged": int(e["DELEGATE_L_WEDGED"]) if e["DELEGATE_L_WEDGED"] else None,
@@ -413,6 +420,28 @@ report_diff() {
   fi
   printf '%s\n' "$stat_out"
   diff_stat=$(printf '%s\n' "$stat_out" | tail -1 | sed 's/^ *//')
+  # The patch itself, for the admin's diff view. The working tree moves on, so
+  # this is the only record of what the run changed. Capped at 1 MB.
+  if [ "$DELEGATE_LOG" != "0" ] && [ -n "$diff_stat" ]; then
+    local diffs_dir=${DELEGATE_DIFFS:-$(dirname "$DELEGATE_LOG")/diffs} tmp
+    if mkdir -p "$diffs_dir" 2>/dev/null; then
+      tmp=$(mktemp "${TMPDIR:-/tmp}/delegate-patch.XXXXXX")
+      if [ "${#scope[@]}" -gt 0 ]; then
+        ( cd "$dir" && git diff -- "${scope[@]}" ) > "$tmp" 2>/dev/null || true
+      else
+        git -C "$dir" diff > "$tmp" 2>/dev/null || true
+      fi
+      if [ -s "$tmp" ]; then
+        diff_file="$diffs_dir/$run_id.patch"
+        if [ "$(wc -c < "$tmp")" -gt 1048576 ]; then
+          head -c 1048576 "$tmp" > "$diff_file"; printf '\n... truncated at 1 MB\n' >> "$diff_file"
+        else
+          mv "$tmp" "$diff_file"
+        fi
+      fi
+      rm -f "$tmp"
+    fi
+  fi
 }
 
 # 124 when SIGTERM ended the child, 137 when the -k SIGKILL had to: timeout

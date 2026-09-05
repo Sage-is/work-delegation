@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""delegate ledger — review and manage every delegation the wrapper has logged.
+"""delegate admin — review and manage every delegation the wrapper has logged.
 
 One Flask module. The ledger file (~/.local/state/delegate/log.jsonl) is read
 on every request, so the row a delegation appended a second ago is already on
@@ -7,11 +7,12 @@ the page; nothing is imported and nothing goes stale. Stars, tags, and notes
 live beside it in marks.db, keyed by a content hash of the row, so they survive
 the ledger being moved or rewritten.
 
-Run:   python3 app/ledger.py            (or: make ledger)
+Run:   python3 app/admin.py             (or: make admin)
 Env:   DELEGATE_LOG           ledger path (default ~/.local/state/delegate/log.jsonl)
        DELEGATE_MARKS         marks db   (default ~/.local/state/delegate/marks.db)
-       DELEGATE_LEDGER_PORT   port       (default 5077, bound to 127.0.0.1 only)
-       DELEGATE_LEDGER_LIVE   seconds between live checks (default 15; 0 = off)
+       DELEGATE_DIFFS         patch dir  (default diffs/ beside the ledger)
+       DELEGATE_ADMIN_PORT    port       (default 5077, bound to 127.0.0.1 only)
+       DELEGATE_ADMIN_LIVE    seconds between live checks (default 15; 0 = off)
 """
 from __future__ import annotations
 
@@ -33,7 +34,8 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config.update(
     LEDGER=os.environ.get("DELEGATE_LOG") or os.path.expanduser("~/.local/state/delegate/log.jsonl"),
     MARKS=os.path.abspath(os.environ.get("DELEGATE_MARKS") or os.path.expanduser("~/.local/state/delegate/marks.db")),
-    LIVE=max(int(os.environ.get("DELEGATE_LEDGER_LIVE") or 15), 0),
+    LIVE=max(int(os.environ.get("DELEGATE_ADMIN_LIVE") or 15), 0),
+    DIFFS=os.environ.get("DELEGATE_DIFFS") or "",
     # The app binds to 127.0.0.1, and a page on a rebinding hostname must not
     # count as same-origin to the browser: refuse every other Host header.
     TRUSTED_HOSTS=["127.0.0.1", "localhost"],
@@ -66,6 +68,8 @@ def load_rows() -> list[dict]:
                 for k in ("ts", "dir", "model"):
                     r[k] = str(r.get(k) or "")
                 r["files"] = [str(f) for f in (r.get("files") or []) if f]
+                r["created"] = [str(f) for f in (r.get("created") or []) if f]
+                r["touched_names"] = sorted({os.path.basename(f) for f in r["files"] + r["created"]})
                 r["id"] = row_id(r)
                 r["line"] = n + 1
                 r["lane_or_model"] = r.get("lane") or r.get("model") or ""
@@ -179,9 +183,81 @@ def rerun_command(r: dict) -> str:
     return " ".join(shlex.quote(p) for p in parts)
 
 
+def revert_command(r: dict) -> str:
+    """Undo the run by hand: checkout for edits, reset-and-remove for creations.
+    The admin never writes to a repo; it hands you the command."""
+    d = shlex.quote(r.get("dir") or ".")
+    created = set(r["created"])
+    edited = [f for f in r["files"] if f not in created]
+    parts = []
+    if edited:
+        parts.append(f"git -C {d} checkout -- " + " ".join(shlex.quote(f) for f in edited))
+    for f in r["created"]:
+        parts.append(f"git -C {d} reset -- {shlex.quote(f)} && rm {shlex.quote(f)}")
+    return " && ".join(parts)
+
+
+def patch_path(r: dict) -> str | None:
+    p = r.get("diff_file")
+    if not p:
+        return None
+    if app.config["DIFFS"]:  # a moved diffs dir: look the file up by name there
+        alt = os.path.join(app.config["DIFFS"], os.path.basename(p))
+        if os.path.isfile(alt):
+            return alt
+    return p if os.path.isfile(p) else None
+
+
+def parse_patch(text: str) -> list[dict]:
+    """A unified diff as a list of files, each with its lines tagged for colour."""
+    files, cur = [], None
+    for line in text.splitlines():
+        if line.startswith("diff --git "):
+            path = line.split(" b/", 1)[-1] if " b/" in line else line[11:]
+            cur = {"path": path, "added": 0, "removed": 0, "lines": []}
+            files.append(cur)
+            continue
+        if cur is None:
+            cur = {"path": "(patch)", "added": 0, "removed": 0, "lines": []}
+            files.append(cur)
+        if line.startswith(("+++ ", "--- ", "index ", "new file", "deleted file", "similarity", "rename ")):
+            kind = "meta"
+        elif line.startswith("@@"):
+            kind = "hunk"
+        elif line.startswith("+"):
+            kind = "add"; cur["added"] += 1
+        elif line.startswith("-"):
+            kind = "del"; cur["removed"] += 1
+        else:
+            kind = "ctx"
+        cur["lines"].append((kind, line))
+    return files
+
+
+def load_patch(r: dict) -> dict:
+    """{'files': [...], 'missing': bool, 'truncated': bool} for the detail page."""
+    p = patch_path(r)
+    if not p:
+        return {"files": [], "missing": bool(r.get("diff_file")), "truncated": False}
+    with open(p, encoding="utf-8", errors="replace") as fh:
+        text = fh.read()
+    return {"files": parse_patch(text), "missing": False, "truncated": "... truncated at 1 MB" in text[-40:]}
+
+
+def lane_key(r: dict) -> str:
+    """Stats bucket: the lane that did the work; a direct run that failed before
+    any edit has none, and groups as 'no lane' rather than under its list."""
+    if r.get("lane"):
+        return r["lane"]
+    if (r.get("backend") or "") == "api":
+        return "no lane"
+    return r["model"] or "?"
+
+
 @app.context_processor
 def inject():
-    return {"live": app.config["LIVE"], "rerun_command": rerun_command, "page_url": page_url}
+    return {"live": app.config["LIVE"], "rerun_command": rerun_command,
+            "revert_command": revert_command, "page_url": page_url}
 
 
 @app.get("/")
@@ -201,7 +277,7 @@ def index():
 @app.get("/m/<rid>")
 def detail(rid):
     r = next((r for r in load_rows() if r["id"] == rid), None) or abort(404)
-    return render_template("detail.html", r=r, m=all_marks().get(rid, {}))
+    return render_template("detail.html", r=r, m=all_marks().get(rid, {}), patch=load_patch(r))
 
 
 @app.post("/m/<rid>/star")
@@ -225,7 +301,7 @@ def stats():
     rows = load_rows()
     by = defaultdict(list)
     for r in rows:
-        by[r["lane_or_model"] or "?"].append(r)
+        by[lane_key(r)].append(r)
     table = []
     for lane, rs in sorted(by.items(), key=lambda kv: -len(kv[1])):
         # rc 0 past an hour is a wedge filed as a win (ledger 2026-08-21); it is
@@ -260,6 +336,6 @@ def export():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("DELEGATE_LEDGER_PORT") or 5077)
-    print(f"delegate ledger: http://127.0.0.1:{port}  ledger={app.config['LEDGER']}  marks={app.config['MARKS']}")
+    port = int(os.environ.get("DELEGATE_ADMIN_PORT") or 5077)
+    print(f"delegate admin: http://127.0.0.1:{port}  ledger={app.config['LEDGER']}  marks={app.config['MARKS']}")
     app.run(host="127.0.0.1", port=port, debug=False)

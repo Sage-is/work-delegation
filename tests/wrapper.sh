@@ -45,6 +45,8 @@ check "1 ledger lane" "$(row lane)" api/m1
 check "1 ledger turns" "$(row turns)" 2
 check "1 ledger session" "$(row session)" stub-0
 check "1 no lock taken" "$([ -d "$T/lock" ] && echo held || echo free)" free
+check "1 run id recorded" "$(row run_id | grep -cE '^[0-9]{8}T[0-9]{6}-[0-9]+$')" 1
+check "1 patch saved beside the ledger" "$(grep -c '^+delegated' "$(row diff_file)")" 1
 
 # 2. Silent no-op is still caught when the model changes nothing.
 reset_repo

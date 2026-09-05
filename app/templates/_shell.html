@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Delegations{% endblock %} — delegate ledger</title>
+<title>{% block title %}Delegations{% endblock %} — delegate admin</title>
 {# Same-origin only: both files are vendored and pinned (make kit_check). #}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/startr.style/style.css') }}">
 <script defer src="{{ url_for('static', filename='vendor/startr-swap/startr-swap.js') }}"></script>
@@ -15,12 +15,18 @@
   }
   pre { white-space: pre-wrap; word-break: break-word; }
   dd { margin: 0; overflow-wrap: anywhere; }
+  /* The diff view: one pre per file, lines coloured by kind. */
+  .diff pre { margin: 0; }
+  .diff .add { color: var(--green); }
+  .diff .del { color: var(--red); }
+  .diff .hunk, .diff .meta { color: var(--text-bright); }
+  .diff summary { cursor: pointer; padding: .4rem 0; }
 </style>
 </head>
 <body style="--p:1rem; --maxw:1100px; --m:0 auto;">
 
 <header style="--d:flex; --fw:wrap; --ai:baseline; --g:.5rem 1rem; --pb:.75rem; --mb:1rem; --bb:1px solid var(--border);">
-  <strong><a href="/" style="--c:var(--text-main);">delegate ledger</a></strong>
+  <strong><a href="/" style="--c:var(--text-main);">delegate admin</a></strong>
   <nav style="--d:flex; --g:1rem;">
     <a href="/">Runs</a>
     <a href="/?starred=1">Starred</a>

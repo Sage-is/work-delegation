@@ -45,13 +45,15 @@ DELEGATE=0 is the kill switch. It stops the wrapper, passes the hook through, an
 
 Every run writes one JSON line to ~/.local/state/delegate/log.jsonl: the brief, lane, lanes skipped, files, exit code, turns, tokens, cost, duration, and diff stat. Failures log too; that is the routing evidence. Setting DELEGATE_ENFORCE=1 arms a PreToolUse hook that bounces oversized direct edits toward delegation. Run delegate-edit --doctor (or make doctor) to verify a machine end to end.
 
-## The ledger app
+## The admin
 
 ```sh
-make ledger        # http://127.0.0.1:5077
+make admin         # http://127.0.0.1:5077
 ```
 
-A small Flask app over the same ledger file: search briefs, dirs, tags, and notes; filter by lane, exit code, backend, directory, date, or starred status; open a run for its full brief, files, lanes skipped, diff stat, and a re-run command ready to paste; star, tag, and note runs; export any filtered set as JSONL; browse a stats page with success rate, median seconds, and cost per lane. It reads the ledger on every request, so a delegation that finished a second ago is already listed, and a Live toggle re-fetches the list when new rows land. Stars, tags, and notes live beside the ledger in `~/.local/state/delegate/marks.db`, keyed by a hash of the row's content, so they survive the ledger being moved. The app is built with startr.style and startr.swap, both vendored and pinned (`make kit_check`); nothing loads from a CDN. Bound to localhost only.
+A small Flask app over the same ledger file. Search briefs, dirs, tags, and notes; filter by lane, exit code, backend, directory, date, or starred status; open a run for its full brief, the files it touched, lanes skipped, the diff it made with added and removed lines coloured per file, a re-run command ready to paste, and a revert command ready to paste; star, tag, and note runs; export any filtered set as JSONL; browse a stats page with success rate, median seconds, and cost per lane. It reads the ledger on every request, so a delegation that finished a second ago is already listed, and a Live toggle re-fetches the list when new rows land. The admin never writes to a repo; it hands you the command.
+
+Stars, tags, and notes live beside the ledger in `~/.local/state/delegate/marks.db`, keyed by a hash of the row's content, so they survive the ledger being moved. Each run's patch is saved beside it too, in `diffs/`, capped at 1 MB; `make diffs_prune` drops patches older than 90 days, and `make ledger_archive` starts the stats over by moving the ledger to a dated archive beside itself. The app is built with startr.style and startr.swap, both vendored and pinned (`make kit_check`); nothing loads from a CDN. Bound to localhost only.
 
 ## Install
 
@@ -71,6 +73,7 @@ Removes everything make install placed.
 
 - skill/  The canonical skill and its scripts
 - harness/  Codex, opencode, and Pi adapters
+- app/  The Flask admin over the ledger (make admin)
 - tests/  Four stub-backed suites and the repeatable matrix
 - results/  Raw patches and logs, with RESULTS.md as the summary
 - marketing/  Landing copy

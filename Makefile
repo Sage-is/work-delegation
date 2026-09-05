@@ -110,14 +110,16 @@ test:
 	@bash tests/agent.sh
 	@bash tests/wrapper.sh
 	@bash tests/hook.sh
-	@python3 -c 'import flask' 2>/dev/null && python3 -m unittest app/test_ledger.py || echo "note  Flask missing: app tests skipped (pip install flask)"
+	@python3 -c 'import flask' 2>/dev/null && python3 -m unittest app/test_admin.py || echo "note  Flask missing: app tests skipped (pip install flask)"
 	@$(MAKE) -s kit_check
 
-# The ledger app: review, search, star, tag, and note every delegation.
-# Reads the live ledger on each request; marks live beside it in marks.db.
-ledger:
+# The admin: review, search, star, tag, note, and diff every delegation.
+# Reads the live ledger on each request; marks and patches live beside it.
+admin:
 	@python3 -c 'import flask' 2>/dev/null || { echo "Flask missing: pip install flask"; exit 1; }
-	@python3 app/ledger.py
+	@python3 app/admin.py
+
+ledger: admin
 
 # The vendored kit (startr.style and startr.swap) must match its pins. A drift
 # is a change nobody reviewed, so it fails rather than warns. Same-origin only:
@@ -131,6 +133,19 @@ kit_check:
 	if grep -q "@import" startr.style/style.css; then echo "REFUSED: style.css carries @import"; fail=1; fi; \
 	if grep -Eq "url\\(['\"]?(https?:|//)" startr.style/style.css; then echo "REFUSED: style.css has off-origin url()"; fail=1; fi; \
 	exit $$fail
+
+# Start the stats over: the ledger moves to log-<date>.archive.jsonl beside
+# itself and a fresh file begins. History stays readable; nothing is deleted.
+ledger_archive:
+	@L=$(HOME)/.local/state/delegate/log.jsonl; [ -s "$$L" ] || { echo "nothing to archive"; exit 0; }; \
+	A=$${L%.jsonl}-$$(date +%Y-%m-%d).archive.jsonl; i=1; \
+	while [ -e "$$A" ]; do A=$${L%.jsonl}-$$(date +%Y-%m-%d)-$$i.archive.jsonl; i=$$((i+1)); done; \
+	mv "$$L" "$$A"; : > "$$L"; echo "archived $$(wc -l < "$$A" | tr -d ' ') rows to $$A"
+
+# Patch files older than 90 days go; the ledger rows keep their stat line.
+diffs_prune:
+	@n=$$(find $(HOME)/.local/state/delegate/diffs -name '*.patch' -mtime +90 -print -delete 2>/dev/null | wc -l | tr -d ' '); \
+	echo "pruned $$n patch file(s) older than 90 days"
 
 # The measurement: make matrix LANES=go/deepseek-v4-flash,ollama/qwen3.5:9b
 # Four tasks per lane through the real wrapper; rows land in results/matrix-<date>.md.
@@ -204,4 +219,4 @@ things_clean:
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
 	install install-bin install-claude install-codex install-opencode install-pi \
-	migrate-names doctor test matrix ledger kit_check uninstall guard-no-name-kills
+	migrate-names doctor test matrix ledger admin kit_check ledger_archive diffs_prune uninstall guard-no-name-kills

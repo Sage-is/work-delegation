@@ -24,8 +24,30 @@
 <h2 style="--size:1rem;">Brief <span style="--c:var(--text-bright); --weight:400;">({{ r.brief|length }} chars)</span></h2>
 <pre style="--p:.75rem; --br:6px; --size:.9rem;">{{ r.brief }}</pre>
 
+<h2 style="--size:1rem;">Diff</h2>
+{% if patch.files %}
+<div class="diff" style="--mb:1rem;">
+  {% for f in patch.files %}
+  <details {% if patch.files|length <= 3 %}open{% endif %} style="--bb:1px solid var(--border);">
+    <summary><code>{{ f.path }}</code> <span style="--c:var(--green);">+{{ f.added }}</span> <span style="--c:var(--red);">-{{ f.removed }}</span></summary>
+    <pre style="--p:.75rem; --br:6px; --size:.85rem;">{% for kind, line in f.lines %}<span class="{{ kind }}">{{ line }}</span>
+{% endfor %}</pre>
+  </details>
+  {% endfor %}
+  {% if patch.truncated %}<p style="--c:var(--text-bright); --size:.85rem;">Patch truncated at 1 MB.</p>{% endif %}
+</div>
+{% elif patch.missing %}
+<p style="--c:var(--text-bright);">The patch file for this run is gone (pruned or moved); the stat line above is what remains.</p>
+{% else %}
+<p style="--c:var(--text-bright);">No patch was recorded for this run{% if r.diff_stat %} (runs before 2026-09-05 have only the stat line){% endif %}.</p>
+{% endif %}
+
 <h2 style="--size:1rem;">Re-run</h2>
 <pre style="--p:.75rem; --br:6px; --size:.85rem;">{{ rerun_command(r) }}</pre>
+{% if revert_command(r) %}
+<h2 style="--size:1rem;">Revert by hand</h2>
+<pre style="--p:.75rem; --br:6px; --size:.85rem;">{{ revert_command(r) }}</pre>
+{% endif %}
 
 <h2 style="--size:1rem;">Tags and note</h2>
 <form method="post" action="/m/{{ r.id }}/note" style="--d:grid; --gtc:1fr; --gtc-md:1fr 2fr auto; --g:.5rem; --ai:start;">

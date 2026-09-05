@@ -61,6 +61,7 @@
       <span style="--p:0 .4rem; --br:4px; --bgc:{{ 'var(--green)' if r.rc == 0 else 'var(--red)' }}; --c:var(--white);">rc {{ r.rc }}</span>
       <span style="--c:var(--text-bright);">{{ r.duration_s }}s{% if r.turns %}, {{ r.turns }} turns{% endif %}{% if r.cost_usd %}, ${{ '%.4f' % r.cost_usd }}{% endif %}</span>
       <a href="{{ page_url(dir=r.dir, page='') }}" style="--c:var(--text-bright); --line-clamp:1; --maxw:28ch;" title="{{ r.dir }}">{{ r.dir.rsplit('/', 1)[-1] }}</a>
+      {% if r.touched_names %}<span style="--c:var(--text-bright);">{{ r.touched_names|join(', ') }}</span>{% endif %}
       {% if r.diff_stat %}<span>{{ r.diff_stat }}</span>{% endif %}
       {% for t in (m.tags or '').split() %}<a href="{{ page_url(tag=t, page='') }}">#{{ t }}</a>{% endfor %}
     </div>
