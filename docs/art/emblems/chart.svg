@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -8 80 80" width="80" height="80" fill="none" stroke="#12293b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<style>
+svg{--ink:#12293b;--tile:#f4e9d0}
+@media (prefers-color-scheme:dark){svg{--ink:#f4e9d0;--tile:#12293b}}
+svg,.tile{stroke:var(--ink)}
+.tile{fill:var(--tile)}
+[fill="#12293b"]{fill:var(--ink)}
+</style>
+<rect class="tile" x="-6" y="-6" width="76" height="76" rx="14" fill="#f4e9d0" stroke="#12293b" stroke-width="4"/>
+<path d="M8,14 L24,8 L40,14 L56,8 L56,50 L40,56 L24,50 L8,56 Z"/><path d="M24,8 V50 M40,14 V56"/><path d="M14,40 q8,-14 18,-6 t16,-10" stroke-width="4" opacity=".45"/><circle cx="48" cy="24" r="4.5" fill="#12293b" stroke="none"/>
+</svg>

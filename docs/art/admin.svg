@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 380" role="img" aria-label="The harbourmaster's office: a porthole onto the sea with the liner passing, a sunburst clock, and on the counter an open manifest with starred entries, a rubber stamp, and a brass telescope.">
+  <defs>
+    <clipPath id="inner"><rect x="14" y="14" width="1252" height="352"/></clipPath>
+    <clipPath id="port"><circle cx="300" cy="150" r="84"/></clipPath>
+  </defs>
+  <rect width="1280" height="380" fill="#12293b"/>
+  <rect x="14" y="14" width="1252" height="352" fill="#f4e9d0"/>
+  <g clip-path="url(#inner)">
+    <!-- wainscot and counter -->
+    <rect x="14" y="196" width="1252" height="170" fill="#3d5a6e"/>
+    <rect x="14" y="196" width="1252" height="4" fill="#e8b64c"/>
+    <rect x="14" y="284" width="1252" height="82" fill="#12293b"/>
+    <rect x="14" y="284" width="1252" height="5" fill="#e8b64c"/>
+    <!-- porthole -->
+    <g clip-path="url(#port)">
+      <rect x="216" y="66" width="168" height="168" fill="#f4e9d0"/>
+      <g fill="#e8b64c" opacity=".16"><path d="M340,162 L216,90 L216,120 Z M340,162 L260,66 L300,66 Z M340,162 L384,66 L384,100 Z"/></g>
+      <circle cx="340" cy="162" r="28" fill="#e8b64c"/>
+      <rect x="216" y="160" width="168" height="30" fill="#3d5a6e"/>
+      <rect x="216" y="188" width="168" height="46" fill="#1a3a50"/>
+      <g fill="#12293b"><path d="M236,160 L246,176 L330,176 L342,160 Z"/><rect x="252" y="150" width="76" height="10"/><path d="M262,150 L270,150 L271,140 L263,140 Z"/><path d="M278,150 L286,150 L287,140 L279,140 Z"/><path d="M294,150 L302,150 L303,140 L295,140 Z"/></g>
+      <path d="M220,184 q20,-6 40,0 t40,0 t40,0 t40,0" stroke="#f4e9d0" stroke-width="1.5" fill="none" opacity=".5"/>
+    </g>
+    <circle cx="300" cy="150" r="88" fill="none" stroke="#e8b64c" stroke-width="12"/>
+    <circle cx="300" cy="150" r="96" fill="none" stroke="#12293b" stroke-width="3"/>
+    <g fill="#12293b"><circle cx="300" cy="58" r="5"/><circle cx="300" cy="242" r="5"/><circle cx="208" cy="150" r="5"/><circle cx="392" cy="150" r="5"/><circle cx="235" cy="85" r="5"/><circle cx="365" cy="85" r="5"/><circle cx="235" cy="215" r="5"/><circle cx="365" cy="215" r="5"/></g>
+    <!-- sunburst clock -->
+    <g transform="translate(980,114)">
+      <g stroke="#e8b64c" stroke-width="5" stroke-linecap="round">
+        <line x1="0" y1="-62" x2="0" y2="-78"/><line x1="0" y1="62" x2="0" y2="78"/><line x1="-62" y1="0" x2="-78" y2="0"/><line x1="62" y1="0" x2="78" y2="0"/>
+        <line x1="44" y1="-44" x2="60" y2="-60"/><line x1="-44" y1="-44" x2="-60" y2="-60"/><line x1="44" y1="44" x2="60" y2="60"/><line x1="-44" y1="44" x2="-60" y2="60"/>
+      </g>
+      <g stroke="#e8b64c" stroke-width="3" stroke-linecap="round" opacity=".8">
+        <line x1="24" y1="-58" x2="30" y2="-72"/><line x1="-24" y1="-58" x2="-30" y2="-72"/><line x1="58" y1="-24" x2="72" y2="-30"/><line x1="58" y1="24" x2="72" y2="30"/><line x1="24" y1="58" x2="30" y2="72"/><line x1="-24" y1="58" x2="-30" y2="72"/><line x1="-58" y1="-24" x2="-72" y2="-30"/><line x1="-58" y1="24" x2="-72" y2="30"/>
+      </g>
+      <circle r="54" fill="#f4e9d0" stroke="#12293b" stroke-width="3"/>
+      <g fill="#12293b"><rect x="-2" y="-46" width="4" height="10"/><rect x="-2" y="36" width="4" height="10"/><rect x="-46" y="-2" width="10" height="4"/><rect x="36" y="-2" width="10" height="4"/></g>
+      <line x1="0" y1="0" x2="0" y2="-40" stroke="#12293b" stroke-width="3" stroke-linecap="round"/>
+      <line x1="0" y1="0" x2="17" y2="10" stroke="#12293b" stroke-width="5" stroke-linecap="round"/>
+      <circle r="5" fill="#c8502e"/>
+    </g>
+    <!-- telescope on the counter, left of the book -->
+    <g transform="translate(536,232) scale(-1,1) rotate(-24)">
+      <rect x="0" y="-8" width="120" height="16" fill="#e8b64c" stroke="#12293b" stroke-width="2"/>
+      <rect x="112" y="-11" width="40" height="22" fill="#e8b64c" stroke="#12293b" stroke-width="2"/>
+      <rect x="-20" y="-6" width="24" height="12" fill="#12293b"/>
+    </g>
+    <g stroke="#12293b" stroke-width="4" stroke-linecap="round"><line x1="488" y1="211" x2="468" y2="286"/><line x1="488" y1="211" x2="510" y2="286"/><line x1="488" y1="211" x2="490" y2="286"/></g>
+    <!-- the manifest, open on the counter -->
+    <g transform="translate(560,236)">
+      <path d="M0,10 L150,0 L150,90 L0,100 Z" fill="#f4e9d0" stroke="#12293b" stroke-width="2.5"/>
+      <path d="M150,0 L300,10 L300,100 L150,90 Z" fill="#f4e9d0" stroke="#12293b" stroke-width="2.5"/>
+      <g stroke="#3d5a6e" stroke-width="2">
+        <line x1="40" y1="26" x2="134" y2="20"/><line x1="40" y1="42" x2="134" y2="36"/><line x1="40" y1="58" x2="134" y2="52"/><line x1="40" y1="74" x2="134" y2="68"/>
+        <line x1="166" y1="20" x2="284" y2="26"/><line x1="166" y1="36" x2="284" y2="42"/><line x1="166" y1="52" x2="284" y2="58"/><line x1="166" y1="68" x2="284" y2="74"/>
+      </g>
+      <g fill="#e8b64c" stroke="#12293b" stroke-width="1.5">
+        <path d="M22,17 l3,7 8,1 -6,5 2,8 -7,-4 -7,4 2,-8 -6,-5 8,-1 z"/>
+        <path d="M22,49 l3,7 8,1 -6,5 2,8 -7,-4 -7,4 2,-8 -6,-5 8,-1 z"/>
+      </g>
+      <line x1="150" y1="0" x2="150" y2="90" stroke="#12293b" stroke-width="2.5"/>
+    </g>
+    <!-- rubber stamp -->
+    <g transform="translate(900,210) scale(1.5)">
+      <rect x="0" y="34" width="56" height="16" fill="#c8502e" stroke="#12293b" stroke-width="2"/>
+      <rect x="18" y="4" width="20" height="30" fill="#e8b64c" stroke="#12293b" stroke-width="2"/>
+      <circle cx="28" cy="2" r="9" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
+    </g>
+    <!-- inkwell and pen -->
+    <rect x="1030" y="256" width="30" height="28" fill="#12293b"/>
+    <rect x="1026" y="252" width="38" height="6" fill="#e8b64c"/>
+    <line x1="1044" y1="256" x2="1096" y2="212" stroke="#e8b64c" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <rect x="7.5" y="7.5" width="1265" height="365" fill="none" stroke="#d9a441" stroke-width="3"/>
+  <rect x="14.5" y="14.5" width="1251" height="351" fill="none" stroke="#d9a441" stroke-width="1"/>
+</svg>

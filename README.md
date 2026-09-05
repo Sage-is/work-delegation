@@ -1,16 +1,16 @@
 # work-delegation
 
-![Art Deco travel poster: a small tugboat at full steam tows a great ocean liner across calm water at sunrise. Caption: work delegation — expensive models plan and judge, cheap models type.](docs/art/hero.svg)
+![Art Deco travel poster: a small tugboat at full steam tows a great ocean liner across calm water at sunrise. Caption: work delegation, expensive models plan and judge, cheap models tug.](docs/art/hero.svg)
 
 Expensive AI models should plan and judge. Cheap models should tug and type.
 
 Sage.is Work-Delegation (AGPL-3.0) lets slower, more expensive, but smarter orchestrating AI assistants (Claude Code, Codex, opencode, Pi, or similar) hand typing work to cheaper models. The assistant writes a precise work order, called a brief. A small wrapper called delegate-edit hands it over a direct API call to a cheaper model, which works with five file tools and no shell, and hands off to the next lane in seconds when one fails. The assistant reviews the resulting git diff before anything counts as done.
 
-## Why
+## <img src="docs/art/emblems/compass.svg" width="32" height="32" alt="" align="absmiddle"> Why
 
 Generating file content is the expensive part of an AI coding session. Reading a diff costs less than writing the file. You keep the judgment on the expensive model and push the typing down to a free tier.
 
-## The numbers
+## <img src="docs/art/emblems/stopwatch.svg" width="32" height="32" alt="" align="absmiddle"> The numbers
 
 On 2026-08-15 we ran our matrix of 8 tasks across 4 types through delegate-edit against a sandbox git repo. Every diff was reviewed line by line. Both logic fixes were verified with assertions.
 
@@ -20,17 +20,10 @@ The paid tier (opencode-go/kimi-k3): 4/4 correct, zero retries, 38-70 seconds pe
 
 Quality matched at this task size. The free tier wins on speed and cost. Default routing is free first, with kimi-k3 for retries only. Switch to other models for strengths or privacy.
 
-The gateway retired `deepseek-v4-flash-free` on 2026-08-21, and the opencode CLI stalled on about half of all runs after that. On 2026-09-04 the same four tasks ran again through direct API lanes (`make matrix`, results in `results/matrix-2026-09-04.md`): `go/kimi-k3` 4/4 at 6-38s, `go/deepseek-v4-flash` 3/4 at 7-13s, `claude/sonnet` 4/4 at 18-22s for about 10 cents a task, `ollama/qwen3.5:9b` offline 2/4. The free Zen lane was rate-limited all day, and each run hopped to the next lane in one second. Run `delegate-edit --doctor` for the lanes this machine can reach today.
 
-## How it works
+## <img src="docs/art/emblems/flag.svg" width="32" height="32" alt="" align="absmiddle"> How it works
 
-```text
-┌───────────────────┐    brief    ┌──────────────────┐
-│    THE LINER      │ ──────────▶ │     THE TUG      │
-│  expensive model  │             │  cheap or free   │
-│  plans and judges │ ◀────────── │  model, types    │
-└───────────────────┘    diff     └──────────────────┘
-```
+![Deco illustration: the liner sends a folded brief across the water to the tug on a dashed line; the tug sends back a diff, a page marked with red and gold lines.](docs/art/how-it-works.svg)
 
 The loop has four steps:
 
@@ -39,13 +32,17 @@ The loop has four steps:
 3. The model works through five tools, read, write, edit, ls, and done, jailed to the project directory without shell, git, or network access.
 4. You read the full diff and review it before anything counts as done.
 
+![Deco illustration: a harbour with a lighthouse and five coloured channel buoys. The first channel is closed with a red cross; the tug turns from it into the next channel, while the liner arrives at the right edge.](docs/art/lanes.svg)
+
 A hardlink guard refuses to touch files with more than one link; those need the inline tmp-file method. Direct lanes take no lock, so independent edits run in parallel when each names its own files.
 
 DELEGATE=0 is the kill switch. It stops the wrapper, passes the hook through, and keeps this work in your hands. When it is set, your coding agent edits directly instead of handing off.
 
 Every run writes one JSON line to ~/.local/state/delegate/log.jsonl: the brief, lane, lanes skipped, files, exit code, turns, tokens, cost, duration, and diff stat. Failures log too; that is the routing evidence. Setting DELEGATE_ENFORCE=1 arms a PreToolUse hook that bounces oversized direct edits toward delegation. Run delegate-edit --doctor (or make doctor) to verify a machine end to end.
 
-## The admin
+## <img src="docs/art/emblems/ledger.svg" width="32" height="32" alt="" align="absmiddle"> The admin
+
+![Deco illustration: the harbourmaster's office, a porthole onto the sea with the liner passing, a sunburst clock, and on the counter an open manifest with starred entries, a rubber stamp, and a brass telescope.](docs/art/admin.svg)
 
 ```sh
 make admin         # http://127.0.0.1:5077
@@ -55,7 +52,7 @@ A small Flask app over the same ledger file. Search briefs, dirs, tags, and note
 
 Stars, tags, and notes live beside the ledger in `~/.local/state/delegate/marks.db`, keyed by a hash of the row's content, so they survive the ledger being moved. Each run's patch is saved beside it too, in `diffs/`, capped at 1 MB; `make diffs_prune` drops patches older than 90 days, and `make ledger_archive` starts the stats over by moving the ledger to a dated archive beside itself. The app is built with startr.style and startr.swap, both vendored and pinned (`make kit_check`); nothing loads from a CDN. Bound to localhost only.
 
-## Install
+## <img src="docs/art/emblems/key.svg" width="32" height="32" alt="" align="absmiddle"> Install
 
 ```sh
 make install
@@ -69,7 +66,7 @@ make uninstall
 
 Removes everything make install placed.
 
-## Repository layout
+## <img src="docs/art/emblems/chart.svg" width="32" height="32" alt="" align="absmiddle"> Repository layout
 
 - skill/  The canonical skill and its scripts
 - harness/  Codex, opencode, and Pi adapters
@@ -77,8 +74,8 @@ Removes everything make install placed.
 - tests/  Four stub-backed suites and the repeatable matrix
 - results/  Raw patches and logs, with RESULTS.md as the summary
 - marketing/  Landing copy
-- docs/
+- docs/  How it works, the stall investigation, and the art (docs/art/, hand-authored SVG in the hero's palette)
 
-## License
+## <img src="docs/art/emblems/seal.svg" width="32" height="32" alt="" align="absmiddle"> License
 
-AGPL-3.0. See the LICENSE file.
+AGPL-3.0. See our [LICENSE](LICENSE) file.
