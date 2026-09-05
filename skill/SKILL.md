@@ -67,7 +67,9 @@ The first lane's prefix picks the backend:
   OpenAI-compatible request shape to every provider. Keys resolve from each
   provider's env var, or from opencode's auth.json for `zen/`, `go/`, and
   `nvidia/`. `DELEGATE_API_KEY` plus `DELEGATE_BASE_URL` drive the generic
-  `api/` prefix. `ollama/` needs no key and works offline.
+  `api/` prefix. `ollama/` needs no key and works offline. `zen/` needs no
+  key for the free models (big-pickle and the `*-free` ids); a paid Zen model
+  without a key fails fast with "Missing API key".
 - `claude/<model>`: runs `claude -p` with only the Read, Edit, and Write
   tools, `--permission-mode acceptEdits`, and the `DELEGATE_MAX_USD` spend
   cap. No Bash.
@@ -214,8 +216,11 @@ A brief holds three kinds of content, each with a rule:
 2. **Tooling and conventions** (framework props, house style): a compact
    inline list is acceptable; a pointer is smarter. Name the file that
    already holds the reference (a skill file, a repo doc, an existing page
-   to match) and have the delegate read it first. Local reads are allowed.
-   One line instead of a kilobyte, and it stays current.
+   to match) and have the delegate read it first. Local reads are allowed,
+   but only inside the project: a reference that lives elsewhere (a skill
+   file, a style guide) gets copied into `.delegate/` in the project first,
+   which the dotfile rule keeps out of git. One line instead of a kilobyte,
+   and it stays current.
 3. **Implementation dictation**: every element, property, and sentence.
    Never. Telling a weaker model every single step defeats the point of
    work delegation. Leave latitude; diff review catches taste cheaper than

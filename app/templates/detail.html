@@ -1,0 +1,37 @@
+{% extends "_shell.html" %}
+{% block title %}{{ r.ts[:16].replace('T',' ') }} {{ r.lane_or_model }}{% endblock %}
+{% block body %}
+<p><a href="/">← runs</a></p>
+
+<div style="--d:flex; --fw:wrap; --ai:baseline; --g:.5rem 1rem; --mb:1rem;">
+  <form method="post" action="/m/{{ r.id }}/star" style="--d:inline;">
+    <button class="star" type="submit" aria-pressed="{{ 'true' if m.starred else 'false' }}" aria-label="Star"
+            style="--bg:none; --b:none; --boxs:none; --m:0; --size:1.5rem; --p:0; --c:{{ 'var(--primary)' if m.starred else 'var(--text-bright)' }};">{{ '★' if m.starred else '☆' }}</button>
+  </form>
+  <h1 style="--size:1.3rem; --m:0;">{{ r.ts.replace('T',' ') }} <code>{{ r.lane_or_model }}</code></h1>
+  <span style="--p:0 .4rem; --br:4px; --size:.9rem; --bgc:{{ 'var(--green)' if r.rc == 0 else 'var(--red)' }}; --c:var(--white);">rc {{ r.rc }}</span>
+</div>
+
+<dl style="--d:grid; --gtc:auto minmax(0,1fr); --g:.3rem 1rem; --size:.9rem; --mb:1rem;">
+  <dt>dir</dt><dd><a href="{{ page_url(dir=r.dir, page='') }}">{{ r.dir }}</a></dd>
+  <dt>backend</dt><dd>{{ r.backend or 'opencode' }}{% if r.lanes_skipped %}, skipped: {{ r.lanes_skipped|join('; ') }}{% endif %}</dd>
+  <dt>files</dt><dd>{{ r.files|join(', ') or '—' }}{% if r.created %} · created: {{ r.created|join(', ') }}{% endif %}</dd>
+  <dt>timing</dt><dd>{{ r.duration_s }}s{% if r.turns %}, {{ r.turns }} turns{% endif %}{% if r.retries %}, {{ r.retries }} retry{% endif %}{% if r.tokens_in %}, {{ r.tokens_in }} in / {{ r.tokens_out }} out{% endif %}{% if r.cost_usd %}, ${{ '%.4f' % r.cost_usd }}{% endif %}</dd>
+  <dt>result</dt><dd>{{ r.diff_stat or 'no diff' }}{% if r.wedged is not none and r.wedged is defined %} · wedged (body rc {{ r.wedged }}){% endif %}{% if r.session %} · session {{ r.session }}{% endif %}</dd>
+  <dt>ledger</dt><dd>line {{ r.line }}, id {{ r.id }}</dd>
+</dl>
+
+<h2 style="--size:1rem;">Brief <span style="--c:var(--text-bright); --weight:400;">({{ r.brief|length }} chars)</span></h2>
+<pre style="--p:.75rem; --br:6px; --size:.9rem;">{{ r.brief }}</pre>
+
+<h2 style="--size:1rem;">Re-run</h2>
+<pre style="--p:.75rem; --br:6px; --size:.85rem;">{{ rerun_command(r) }}</pre>
+
+<h2 style="--size:1rem;">Tags and note</h2>
+<form method="post" action="/m/{{ r.id }}/note" style="--d:grid; --gtc:1fr; --gtc-md:1fr 2fr auto; --g:.5rem; --ai:start;">
+  <input name="tags" value="{{ m.tags or '' }}" placeholder="tags, space separated" aria-label="Tags">
+  <textarea name="note" rows="3" placeholder="note" aria-label="Note">{{ m.note or '' }}</textarea>
+  <button type="submit">Save</button>
+</form>
+{% if m.updated %}<p style="--c:var(--text-bright); --size:.8rem;">marks updated {{ m.updated.replace('T',' ') }}</p>{% endif %}
+{% endblock %}

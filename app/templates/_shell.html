@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Delegations{% endblock %} — delegate ledger</title>
+{# Same-origin only: both files are vendored and pinned (make kit_check). #}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/startr.style/style.css') }}">
+<script defer src="{{ url_for('static', filename='vendor/startr-swap/startr-swap.js') }}"></script>
+<script defer src="{{ url_for('static', filename='live.js') }}"></script>
+<style>
+  /* startr.style has hover props but no focus props: keyboard users get these. */
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 2px;
+  }
+  pre { white-space: pre-wrap; word-break: break-word; }
+  dd { margin: 0; overflow-wrap: anywhere; }
+</style>
+</head>
+<body style="--p:1rem; --maxw:1100px; --m:0 auto;">
+
+<header style="--d:flex; --fw:wrap; --ai:baseline; --g:.5rem 1rem; --pb:.75rem; --mb:1rem; --bb:1px solid var(--border);">
+  <strong><a href="/" style="--c:var(--text-main);">delegate ledger</a></strong>
+  <nav style="--d:flex; --g:1rem;">
+    <a href="/">Runs</a>
+    <a href="/?starred=1">Starred</a>
+    <a href="/stats">Stats</a>
+  </nav>
+  {# Outside the swap region on purpose: a swap must not reset the toggle. #}
+  <label style="--ml:auto; --d:flex; --ai:center; --g:.4rem; --size:.85rem; --c:var(--text-bright);">
+    <input type="checkbox" id="live" data-interval="{{ live }}" {% if live %}checked{% endif %}>
+    Live<span id="live-note"></span>
+  </label>
+</header>
+
+<main data-swap>
+{% block body %}{% endblock %}
+</main>
+
+</body>
+</html>

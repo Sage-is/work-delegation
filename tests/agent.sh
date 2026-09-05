@@ -111,8 +111,10 @@ DELEGATE_AUTH_JSON=$T/auth.json agent --lanes go/m1 > /dev/null
 check "9 key from auth.json" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['auth'])")" "Bearer fake-go-key"
 OPENCODE_GO_API_KEY=env-wins DELEGATE_AUTH_JSON=$T/auth.json agent --lanes go/m1 > /dev/null
 check "9 env var wins" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['auth'])")" "Bearer env-wins"
-check "9 no key skips the lane" "$(DELEGATE_AUTH_JSON=/nonexistent agent --lanes zen/m1)" 2
-check "9 reason names the variable" "$(out lanes_skipped | grep -c OPENCODE_API_KEY)" 1
+check "9 no key skips a keyed lane" "$(DELEGATE_AUTH_JSON=/nonexistent agent --lanes go/m1)" 2
+check "9 reason names the variable" "$(out lanes_skipped | grep -c OPENCODE_GO_API_KEY)" 1
+check "9 zen runs keyless" "$(DELEGATE_AUTH_JSON=/nonexistent agent --lanes zen/m1)" 0
+check "9 zen keyless sends no auth" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['auth'])")" None
 
 # 9b. NIM model ids keep their vendor; NVIDIA's own get it back.
 reset_repo

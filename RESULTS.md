@@ -185,6 +185,9 @@ Things learned on the way, each now in code or tests:
   three third-party proxies document it. Shipped: zen/ lanes send the
   opencode-prefixed User-Agent. big-pickle then edited the scratch repo in
   7.6s through the wrapper.
+- The free Zen models need no key at all: with the client identity and no
+  Authorization header, big-pickle still answers; a paid model without a key
+  returns `AuthError: Missing API key`. The free lane is keyless on any machine.
 - The CLI's retry logic honours a 429's `retry-after`, which on the free tier
   is "seconds until midnight UTC". A real quota hit therefore makes the
   opencode path sit silently until the cap fires. That is the shape of every

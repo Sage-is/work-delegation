@@ -1,0 +1,79 @@
+{% extends "_shell.html" %}
+{% block title %}{% if f.starred %}Starred{% else %}Runs{% endif %}{% endblock %}
+{% block body %}
+<h1 style="--size:1.1rem; --m:0 0 .5rem;">{% if f.starred %}Starred runs{% else %}Runs{% endif %}</h1>
+
+{# The form lives above its results, so it names its region. #}
+<form method="get" action="/" data-swap-target="#results"
+      style="--d:grid; --gtc:1fr; --gtc-md:2fr repeat(3, 1fr); --gtc-lg:3fr repeat(5, 1fr); --g:.5rem; --mb:1rem;">
+  <input type="search" name="q" value="{{ f.q }}" placeholder="search briefs, dirs, tags, notes" aria-label="Search">
+  <select name="lane" aria-label="Lane">
+    <option value="">any lane</option>
+    {% for l in lanes %}<option value="{{ l }}" {% if f.lane == l %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <select name="rc" aria-label="Exit code">
+    <option value="">any exit</option>
+    {% for code, label in [("0","0 ok"),("1","1 failed"),("2","2 no lane"),("5","5 no-op"),("6","6 timeout"),("8","8 max turns"),("9","9 wedged")] %}
+    <option value="{{ code }}" {% if f.rc == code %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="backend" aria-label="Backend">
+    <option value="">any backend</option>
+    {% for b in ["api","claude","opencode"] %}<option value="{{ b }}" {% if f.backend == b %}selected{% endif %}>{{ b }}</option>{% endfor %}
+  </select>
+  <input type="date" name="since" value="{{ f.since }}" aria-label="Since">
+  <div style="--d:flex; --g:.5rem; --ai:center;">
+    <label style="--d:flex; --ai:center; --g:.3rem;"><input type="checkbox" name="starred" value="1" {% if f.starred %}checked{% endif %}> starred</label>
+    <button type="submit" style="--ml:auto;">Filter</button>
+  </div>
+  {% if f.dir %}<input type="hidden" name="dir" value="{{ f.dir }}">{% endif %}
+  {% if f.tag %}<input type="hidden" name="tag" value="{{ f.tag }}">{% endif %}
+</form>
+
+{# The results block has an id, so the form above and the refresh form can
+   name it; it is not a region of its own, so links inside it re-render <main>
+   and the filter form stays in step with the address. #}
+<section id="results">
+  <div style="--d:flex; --fw:wrap; --g:.5rem 1rem; --ai:baseline; --c:var(--text-bright); --size:.85rem; --mb:.75rem;">
+    <span>{{ hits }} of {{ total }} runs{% if newest %}, newest {{ newest[:16].replace('T',' ') }}{% endif %}</span>
+    {# A GET form, not a link: startr.swap declines a link to the current address. #}
+    <form id="refresh" method="get" action="/" data-swap-target="#results" style="--d:inline;">
+      {% for k, v in request.args.items() if k != 'page' and v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      <button type="submit" style="--bg:none; --b:none; --boxs:none; --m:0; --p:0; --c:var(--links); --td:underline; --size:.85rem;">Refresh</button>
+    </form>
+    <a href="{{ url_for('export') }}?{{ request.query_string.decode() }}" data-swap-off>Export {{ hits }} as JSONL</a>
+    {% if f.dir %}<span>dir: {{ f.dir }} <a href="{{ page_url(dir='', page='') }}" aria-label="Clear dir filter">×</a></span>{% endif %}
+    {% if f.tag %}<span>tag: {{ f.tag }} <a href="{{ page_url(tag='', page='') }}" aria-label="Clear tag filter">×</a></span>{% endif %}
+    {% if tags %}<span>tags: {% for t, n in tags %}<a href="{{ page_url(tag=t, page='') }}">#{{ t }}</a>&nbsp;{% endfor %}</span>{% endif %}
+  </div>
+
+  {% if not rows %}<p>No runs match.</p>{% endif %}
+  {% for r in rows %}{% set m = marks.get(r.id, {}) %}
+  <article id="row-{{ r.id }}" style="--d:grid; --gtc:auto minmax(0,1fr); --g:.25rem .75rem; --p:.6rem 0; --bb:1px solid var(--border);">
+    <form method="post" action="/m/{{ r.id }}/star" style="--gr:span 2;">
+      <input type="hidden" name="next" value="{{ request.full_path if request.query_string else '/' }}">
+      <button class="star" type="submit" aria-pressed="{{ 'true' if m.starred else 'false' }}" aria-label="Star"
+              style="--bg:none; --b:none; --boxs:none; --m:0; --size:1.3rem; --p:0 .2rem; --c:{{ 'var(--primary)' if m.starred else 'var(--text-bright)' }};">{{ '★' if m.starred else '☆' }}</button>
+    </form>
+    <div style="--d:flex; --fw:wrap; --g:.3rem .8rem; --ai:baseline; --size:.85rem;">
+      <a href="/m/{{ r.id }}" style="--weight:600;">{{ r.ts[:16].replace('T',' ') }}</a>
+      <code>{{ r.lane_or_model }}</code>
+      <span style="--p:0 .4rem; --br:4px; --bgc:{{ 'var(--green)' if r.rc == 0 else 'var(--red)' }}; --c:var(--white);">rc {{ r.rc }}</span>
+      <span style="--c:var(--text-bright);">{{ r.duration_s }}s{% if r.turns %}, {{ r.turns }} turns{% endif %}{% if r.cost_usd %}, ${{ '%.4f' % r.cost_usd }}{% endif %}</span>
+      <a href="{{ page_url(dir=r.dir, page='') }}" style="--c:var(--text-bright); --line-clamp:1; --maxw:28ch;" title="{{ r.dir }}">{{ r.dir.rsplit('/', 1)[-1] }}</a>
+      {% if r.diff_stat %}<span>{{ r.diff_stat }}</span>{% endif %}
+      {% for t in (m.tags or '').split() %}<a href="{{ page_url(tag=t, page='') }}">#{{ t }}</a>{% endfor %}
+    </div>
+    <div style="--line-clamp:2; --c:var(--text-main);">{{ r.brief[:300] }}{% if r.brief|length > 300 %}…{% endif %}</div>
+  </article>
+  {% endfor %}
+
+  {% if pages > 1 %}
+  <p style="--d:flex; --g:1rem; --jc:center; --mt:1rem;">
+    {% if page > 1 %}<a href="{{ page_url(page=page - 1) }}">← newer</a>{% endif %}
+    <span>page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}<a href="{{ page_url(page=page + 1) }}">older →</a>{% endif %}
+  </p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "_shell.html" %}
+{% block title %}Stats{% endblock %}
+{% block body %}
+<h1 style="--size:1.3rem;">Stats <span style="--c:var(--text-bright); --weight:400; --size:.9rem;">{{ total }} runs, {{ starred }} starred, median brief {{ brief_median }} chars over the last 50</span></h1>
+
+<div style="--of:auto;">
+<table style="--w:100%; --size:.9rem;">
+  <thead><tr><th style="--ta:left;">lane</th><th>runs</th><th>ok</th><th>success</th><th>median s</th><th>cost $</th></tr></thead>
+  <tbody>
+  {% for t in table %}
+  <tr>
+    <td><a href="/?lane={{ t.lane.split('/')[0]|urlencode }}"><code>{{ t.lane }}</code></a></td>
+    <td style="--ta:center;">{{ t.runs }}</td><td style="--ta:center;">{{ t.ok }}</td>
+    <td style="--ta:center;">{{ t.rate }}%</td>
+    <td style="--ta:center;">{{ t.median_s if t.median_s is not none else '—' }}</td>
+    <td style="--ta:center;">{{ t.cost or '—' }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2 style="--size:1rem; --mt:1.5rem;">Exit codes</h2>
+<p style="--d:flex; --fw:wrap; --g:.5rem 1rem;">
+  {% for code, n in rcs %}<a href="/?rc={{ code|urlencode }}">rc {{ code }}: {{ n }}</a>{% endfor %}
+</p>
+{% endblock %}

@@ -29,6 +29,10 @@
 
 ## Previous Weeks
 
+### 2026-09-05
+
+- [x] **Ledger app.** `make ledger`: search, filter, star, tag, note, export, stats over the live ledger; startr.style + startr.swap vendored and pinned; nine tests; `make kit_check` fails on pin drift.
+
 ### 2026-09-04
 
 - [x] **Found and fixed the free-lane refusal.** Zen's free models 429 any User-Agent not starting with `opencode/`, before quota; the error text says rate limit. zen/ lanes now send `opencode/<version> delegate-agent/1`; big-pickle edits in 7.6s. The real limit is per IP per UTC day, shared with the TUI; balance and Go do not change it. `zen/claude-*` needs Zen billing (401).

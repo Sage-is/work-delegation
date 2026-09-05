@@ -110,6 +110,27 @@ test:
 	@bash tests/agent.sh
 	@bash tests/wrapper.sh
 	@bash tests/hook.sh
+	@python3 -c 'import flask' 2>/dev/null && python3 -m unittest app/test_ledger.py || echo "note  Flask missing: app tests skipped (pip install flask)"
+	@$(MAKE) -s kit_check
+
+# The ledger app: review, search, star, tag, and note every delegation.
+# Reads the live ledger on each request; marks live beside it in marks.db.
+ledger:
+	@python3 -c 'import flask' 2>/dev/null || { echo "Flask missing: pip install flask"; exit 1; }
+	@python3 app/ledger.py
+
+# The vendored kit (startr.style and startr.swap) must match its pins. A drift
+# is a change nobody reviewed, so it fails rather than warns. Same-origin only:
+# neither file ever loads from a CDN.
+kit_check:
+	@fail=0; cd app/static/vendor && for f in startr-swap/startr-swap.js startr.style/style.css; do \
+	  if [ ! -f "$$f.sha256" ]; then echo "MISSING PIN: $$f.sha256"; fail=1; continue; fi; \
+	  want=$$(cat "$$f.sha256"); got=$$(shasum -a 256 "$$f" | awk '{print $$1}'); \
+	  if [ "$$want" != "$$got" ]; then echo "DRIFT: $$f"; fail=1; \
+	  else echo "ok  pin  $$f ($$(wc -c < "$$f" | tr -d ' ') bytes)"; fi; done; \
+	if grep -q "@import" startr.style/style.css; then echo "REFUSED: style.css carries @import"; fail=1; fi; \
+	if grep -Eq "url\\(['\"]?(https?:|//)" startr.style/style.css; then echo "REFUSED: style.css has off-origin url()"; fail=1; fi; \
+	exit $$fail
 
 # The measurement: make matrix LANES=go/deepseek-v4-flash,ollama/qwen3.5:9b
 # Four tasks per lane through the real wrapper; rows land in results/matrix-<date>.md.
@@ -182,5 +203,5 @@ things_clean:
 .PHONY: help show_vars verify require_gitflow_next \
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
-	install install-all install-bin install-claude install-codex install-opencode install-pi \
-	migrate-names doctor test matrix uninstall guard-no-name-kills
+	install install-bin install-claude install-codex install-opencode install-pi \
+	migrate-names doctor test matrix ledger kit_check uninstall guard-no-name-kills

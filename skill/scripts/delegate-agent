@@ -283,7 +283,10 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
     if not base:
         raise LaneError("error", "no base URL (set DELEGATE_BASE_URL for api/)")
     key = resolve_key(prefix)
-    if key is None and PROVIDERS[prefix][1]:
+    # Zen's free models take no key at all (the gateway treats a missing or
+    # "public" key as anonymous; measured 2026-09-04). A paid Zen model without
+    # a key answers "Missing API key" at once, so the lane still fails fast.
+    if key is None and PROVIDERS[prefix][1] and prefix != "zen":
         raise LaneError("error", f"no key ({PROVIDERS[prefix][1]} unset, auth.json has none)")
 
     user = brief
@@ -375,17 +378,20 @@ def doctor() -> int:
             print("note  api/ lane: set DELEGATE_BASE_URL and DELEGATE_API_KEY to use it")
             continue
         key = resolve_key(prefix)
-        if env and key is None:
+        if env and key is None and prefix != "zen":
             src = f"{env} unset" + (f", auth.json has no {entry}" if entry else "")
             print(f"note  {prefix}/ lane: no key ({src})")
             continue
+        if key is None and prefix == "zen":
+            print("note  zen/ lane: no key; free models only")
         req = urllib.request.Request(f"{b}/models", headers={
             "Accept": "application/json", "User-Agent": user_agent(prefix),
             **({"Authorization": f"Bearer {key}"} if key else {})})
         try:
             with urllib.request.urlopen(req, timeout=3) as resp:
                 n = len((json.loads(resp.read().decode("utf-8")) or {}).get("data") or [])
-            print(f"PASS  {prefix}/ lane: key resolves, {b} lists {n} models")
+            how = "key resolves" if key else "keyless, free models only"
+            print(f"PASS  {prefix}/ lane: {how}, {b} lists {n} models")
         except urllib.error.HTTPError as exc:
             print(f"FAIL  {prefix}/ lane: {b}/models answered HTTP {exc.code}")
         except Exception as exc:  # connection refused, timeout, bad JSON

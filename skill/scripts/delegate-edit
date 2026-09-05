@@ -13,6 +13,8 @@
 #      DELEGATE_BUDGET=<s> wall ceiling for a direct or claude run (default 480;
 #        a whole-document rewrite on a slow lane needs the room, measured 2026-09-04).
 #      DELEGATE_MAX_TURNS=<n> tool turns for a direct or claude run (default 20).
+#      DELEGATE_REQUEST_TIMEOUT=<s> per-request cap on direct lanes (default 120;
+#        a whole-document reply from a slow lane can need more).
 #      DELEGATE_MAX_USD=<n> hard spend cap for the claude backend (default 0.50).
 #      DELEGATE_NO_INDEX_ADD=1 skips `git add -N` on newly created files.
 # Exit: 1 backend failure, 2 usage or no usable lane, 3 disabled, 4 hardlink refusal,
@@ -44,6 +46,7 @@ DELEGATE_TIMEOUT=${DELEGATE_TIMEOUT:-120}
 DELEGATE_KILL_AFTER=${DELEGATE_KILL_AFTER:-10}
 DELEGATE_BUDGET=${DELEGATE_BUDGET:-480}
 DELEGATE_MAX_TURNS=${DELEGATE_MAX_TURNS:-20}
+DELEGATE_REQUEST_TIMEOUT=${DELEGATE_REQUEST_TIMEOUT:-120}
 
 LOCK="${DELEGATE_LOCK:-/tmp/delegate-$(id -u).lock}"
 DELEGATE_LOCK_WAIT=${DELEGATE_LOCK_WAIT:-90}
@@ -511,7 +514,7 @@ run_api() {
   out_file=$(mktemp "${TMPDIR:-/tmp}/delegate-edit-out.XXXXXX")
   python3 "$AGENT" --dir "$dir" --lanes "$model" --brief-file "$brief_file" \
     ${agent_files[@]+"${agent_files[@]}"} --budget "$DELEGATE_BUDGET" \
-    --max-turns "$DELEGATE_MAX_TURNS" > "$out_file" || rc=$?
+    --max-turns "$DELEGATE_MAX_TURNS" --request-timeout "$DELEGATE_REQUEST_TIMEOUT" > "$out_file" || rc=$?
   # The agent's last stdout line is its JSON summary; everything else was stderr.
   local summary
   summary=$(tail -1 "$out_file")
