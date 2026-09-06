@@ -1,68 +1,1019 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 380" role="img" aria-label="The liner sends a folded brief across the water to the tug; the tug sends back a diff, a page marked with red and gold lines.">
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#12293b"/></marker>
-    <clipPath id="inner"><rect x="14" y="14" width="1252" height="352"/></clipPath>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1280 380"
+   role="img"
+   aria-label="The liner sends a folded brief across the water to the tug; the tug sends back a diff, a page marked with red and gold lines."
+   version="1.1"
+   id="svg45"
+   sodipodi:docname="how-it-works.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview45"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.2960864"
+     inkscape:cx="579.82247"
+     inkscape:cy="240.7247"
+     inkscape:window-width="2560"
+     inkscape:window-height="1381"
+     inkscape:window-x="0"
+     inkscape:window-y="31"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg45" />
+  <defs
+     id="defs1">
+    <marker
+       id="arrow"
+       viewBox="0 0 10 10"
+       refX="8"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto">
+      <path
+         d="M0,0 L10,5 L0,10 Z"
+         fill="#12293b"
+         id="path1" />
+    </marker>
+    <clipPath
+       id="inner">
+      <rect
+         x="14"
+         y="14"
+         width="1252"
+         height="352"
+         id="rect1" />
+    </clipPath>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient74"
+       id="radialGradient76"
+       cx="247.34612"
+       cy="358.18405"
+       fx="247.34612"
+       fy="358.18405"
+       r="15"
+       gradientTransform="matrix(1,0,0,0.31111111,0,246.749)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient74"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#f4e9d0;stop-opacity:1;"
+         offset="0"
+         id="stop75" />
+      <stop
+         style="stop-color:#f4e9d0;stop-opacity:0;"
+         offset="1"
+         id="stop76" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient74"
+       id="radialGradient78"
+       cx="390"
+       cy="354.75"
+       fx="390"
+       fy="354.75"
+       r="14"
+       gradientTransform="matrix(1,0,0,0.26785714,-26.966477,262.65882)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient74"
+       id="radialGradient78-1"
+       cx="390"
+       cy="354.75"
+       fx="390"
+       fy="354.75"
+       r="14"
+       gradientTransform="matrix(1,0,0,0.26785714,-4.9670796,263.66063)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient72"
+       id="radialGradient74"
+       cx="336"
+       cy="234"
+       fx="336"
+       fy="234"
+       r="11"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient72"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:1;"
+         offset="0"
+         id="stop73" />
+      <stop
+         style="stop-color:#3d5a6e;stop-opacity:0;"
+         offset="1"
+         id="stop74" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient72"
+       id="radialGradient72"
+       cx="358"
+       cy="218"
+       fx="358"
+       fy="218"
+       r="14"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-7.0347332,1.7586833)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient72"
+       id="radialGradient70"
+       cx="386"
+       cy="202"
+       fx="386"
+       fy="202"
+       r="17"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-11.724556,-1.7586833)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient72"
+       id="radialGradient68"
+       cx="420"
+       cy="188"
+       fx="420"
+       fy="188"
+       r="20"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-17.586833,-1.1724555)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient72"
+       id="radialGradient66"
+       cx="459"
+       cy="178"
+       fx="459"
+       fy="178"
+       r="22"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-19.931744,3.5173666)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient82"
+       id="radialGradient84"
+       cx="778"
+       cy="144"
+       fx="778"
+       fy="144"
+       r="9"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient82"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:1;"
+         offset="0"
+         id="stop83" />
+      <stop
+         style="stop-color:#d9cdb0;stop-opacity:0;"
+         offset="1"
+         id="stop84" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient82"
+       id="radialGradient82"
+       cx="878"
+       cy="142"
+       fx="878"
+       fy="142"
+       r="8"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient82"
+       id="radialGradient80"
+       cx="978"
+       cy="144"
+       fx="978"
+       fy="144"
+       r="9"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient87"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient86"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#ffc650;stop-opacity:1;"
+         offset="0.66224927"
+         id="stop86" />
+      <stop
+         style="stop-color:#f0daa7;stop-opacity:0.83152175;"
+         offset="1"
+         id="stop87" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient2"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient4"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient6"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient8"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient10"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient12"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient14"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient16"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient18"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient20"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="sky"
+       x1="14.855145"
+       y1="38.774446"
+       x2="14.855145"
+       y2="801.33854"
+       gradientTransform="matrix(1.6156019,0,0,0.61896436,-65,-49)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#f6ead0"
+         id="stop23" />
+      <stop
+         offset="0.55"
+         stop-color="#f0dcb4"
+         id="stop24" />
+      <stop
+         offset="1"
+         stop-color="#e7c98f"
+         id="stop25" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient25"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient26"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient27"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient28"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient29"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient30"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient31"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient32"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient33"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient86"
+       id="radialGradient34"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.27321429,0,-111.19821)"
+       cx="0"
+       cy="-153"
+       fx="0"
+       fy="-153"
+       r="560" />
+    <linearGradient
+       id="sky-9"
+       x1="14.855145"
+       y1="38.774446"
+       x2="14.855145"
+       y2="801.33854"
+       gradientTransform="matrix(1.6398849,0,0,0.45809,-10.235987,-2.5206201)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#f6ead0"
+         id="stop1" />
+      <stop
+         offset="0.55"
+         stop-color="#f0dcb4"
+         id="stop2" />
+      <stop
+         offset="1"
+         stop-color="#e7c98f"
+         id="stop3" />
+    </linearGradient>
   </defs>
-  <rect width="1280" height="380" fill="#12293b"/>
-  <rect x="14" y="14" width="1252" height="352" fill="#f4e9d0"/>
-  <g clip-path="url(#inner)">
+  <rect
+     width="1280"
+     height="380"
+     fill="#12293b"
+     id="rect2" />
+  <rect
+     x="14"
+     y="14"
+     width="1252"
+     height="352"
+     fill="#f4e9d0"
+     id="rect3" />
+  <rect
+     x="14.12474"
+     y="15.241566"
+     width="1250.5173"
+     height="349.323"
+     fill="url(#sky)"
+     id="rect6-7"
+     inkscape:label="Sunny Sky"
+     style="fill:url(#sky-9);stroke-width:0.866727" />
+  <g
+     transform="matrix(1.0165554,0,0,0.98583988,639.53254,315.89021)"
+     id="g16"
+     inkscape:label="Sun">
+    <g
+       fill="#e8b64c"
+       opacity="0.28"
+       id="g15"
+       inkscape:label="Sun Rays"
+       transform="scale(1.0984994,1)"
+       style="fill:url(#radialGradient87)">
+      <path
+         d="m 0,0 -560,-258 v 40 z"
+         id="path6"
+         style="fill:url(#radialGradient25)" />
+      <path
+         d="m 0,0 -480,-306 h 40 z"
+         id="path7"
+         style="fill:url(#radialGradient26)" />
+      <path
+         d="m 0,0 -330,-306 h 46 z"
+         id="path8"
+         style="fill:url(#radialGradient27)" />
+      <path
+         d="m 0,0 -180,-306 h 50 z"
+         id="path9"
+         style="fill:url(#radialGradient28)" />
+      <path
+         d="M 0,0 -40,-306 H 14 Z"
+         id="path10"
+         style="fill:url(#radialGradient29)" />
+      <path
+         d="m 0,0 104,-306 h 52 z"
+         id="path11"
+         style="fill:url(#radialGradient30)" />
+      <path
+         d="m 0,0 248,-306 h 48 z"
+         id="path12"
+         style="fill:url(#radialGradient31)" />
+      <path
+         d="m 0,0 392,-306 h 44 z"
+         id="path13"
+         style="fill:url(#radialGradient32)" />
+      <path
+         d="m 0,0 536,-306 24,24 z"
+         id="path14"
+         style="fill:url(#radialGradient33)" />
+      <path
+         d="m 0,0 560,-196 v 40 z"
+         id="path15"
+         style="fill:url(#radialGradient34)" />
+    </g>
+    <circle
+       cx="0"
+       cy="-36"
+       r="86"
+       fill="#e8b64c"
+       id="circle15" />
+    <circle
+       cx="0"
+       cy="-36"
+       r="70"
+       fill="#f0c766"
+       id="circle16" />
+  </g>
+  <g
+     clip-path="url(#inner)"
+     id="g44"
+     style="display:inline"
+     inkscape:label="Sea"
+     sodipodi:insensitive="true">
     <!-- sunburst: filled wedges, as the hero -->
-    <g fill="#e8b64c" opacity=".16">
-      <path d="M640,262 L14,60 L14,130 Z M640,262 L130,14 L230,14 Z M640,262 L390,14 L470,14 Z M640,262 L600,14 L680,14 Z M640,262 L810,14 L890,14 Z M640,262 L1050,14 L1150,14 Z M640,262 L1266,60 L1266,130 Z"/>
-    </g>
-    <circle cx="640" cy="266" r="64" fill="#e8b64c"/>
     <!-- sea -->
-    <rect x="14" y="262" width="1252" height="40" fill="#3d5a6e"/>
-    <rect x="14" y="300" width="1252" height="34" fill="#1a3a50"/>
-    <rect x="14" y="334" width="1252" height="32" fill="#12293b"/>
-    <g stroke="#f4e9d0" stroke-width="1.5" fill="none" opacity=".45">
-      <path d="M40,282 q30,-8 60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/>
-      <path d="M20,318 q30,-8 60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/>
-    </g>
+    <rect
+       x="14"
+       y="262"
+       width="1252"
+       height="40"
+       fill="#3d5a6e"
+       id="rect4" />
+    <rect
+       x="14"
+       y="300"
+       width="1252"
+       height="34"
+       fill="#1a3a50"
+       id="rect5" />
+    <rect
+       x="14"
+       y="334"
+       width="1252"
+       height="32"
+       fill="#12293b"
+       id="rect6" />
     <!-- liner, bow to the left, funnels raked aft -->
-    <g>
-      <line x1="152" y1="206" x2="152" y2="112" stroke="#12293b" stroke-width="3"/>
-      <path d="M154,118 L188,130 L154,142 Z" fill="#c8502e"/>
-      <rect x="150" y="204" width="200" height="24" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
-      <rect x="110" y="228" width="330" height="34" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
-      <g fill="#c8502e"><path d="M200,204 L226,204 L232,160 L206,160 Z"/><path d="M250,204 L276,204 L282,160 L256,160 Z"/><path d="M300,204 L326,204 L332,160 L306,160 Z"/></g>
-      <g fill="#12293b"><path d="M204,164 L234,164 L236,156 L206,156 Z"/><path d="M254,164 L284,164 L286,156 L256,156 Z"/><path d="M304,164 L334,164 L336,156 L306,156 Z"/></g>
-      <g fill="#12293b">
-        <circle cx="130" cy="245" r="3"/><circle cx="154" cy="245" r="3"/><circle cx="178" cy="245" r="3"/><circle cx="202" cy="245" r="3"/><circle cx="226" cy="245" r="3"/><circle cx="250" cy="245" r="3"/><circle cx="274" cy="245" r="3"/><circle cx="298" cy="245" r="3"/><circle cx="322" cy="245" r="3"/><circle cx="346" cy="245" r="3"/><circle cx="370" cy="245" r="3"/><circle cx="394" cy="245" r="3"/><circle cx="418" cy="245" r="3"/>
-      </g>
-      <path d="M70,262 L96,302 L470,302 L500,262 Z" fill="#12293b"/>
-      <rect x="76" y="262" width="418" height="9" fill="#c8502e"/>
-    </g>
     <!-- tug, bow to the left, smoke trailing aft -->
-    <g>
-      <g fill="#12293b" opacity=".5"><circle cx="1062" cy="194" r="5"/><circle cx="1074" cy="182" r="6"/><circle cx="1088" cy="171" r="7"/><circle cx="1104" cy="162" r="8"/></g>
-      <path d="M1052,236 L1066,236 L1070,206 L1056,206 Z" fill="#c8502e"/>
-      <path d="M1054,210 L1072,210 L1073,204 L1055,204 Z" fill="#12293b"/>
-      <rect x="1030" y="236" width="56" height="26" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
-      <rect x="1040" y="243" width="10" height="8" fill="#12293b"/><rect x="1058" y="243" width="10" height="8" fill="#12293b"/>
-      <path d="M990,262 L1006,292 L1124,292 L1146,262 Z" fill="#12293b"/>
-      <rect x="994" y="262" width="148" height="8" fill="#c8502e"/>
-      <path d="M992,264 q-14,10 -30,6" stroke="#f4e9d0" stroke-width="2" fill="none" opacity=".7"/>
-    </g>
     <!-- the brief, liner to tug -->
-    <path d="M170,120 Q640,50 1040,200" fill="none" stroke="#12293b" stroke-width="2.5" stroke-dasharray="12 9" marker-end="url(#arrow)"/>
-    <g transform="translate(598,44) rotate(6) scale(1.5)">
-      <rect x="3" y="3" width="44" height="56" fill="#12293b" opacity=".18"/>
-      <rect x="0" y="0" width="44" height="56" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
-      <path d="M32,0 L44,12 L32,12 Z" fill="#12293b"/>
-      <g stroke="#12293b" stroke-width="2"><line x1="8" y1="22" x2="34" y2="22"/><line x1="8" y1="30" x2="34" y2="30"/><line x1="8" y1="38" x2="26" y2="38"/></g>
-    </g>
     <!-- the diff, tug back to liner, riding above the waterline -->
-    <path d="M1000,244 Q760,262 520,244" fill="none" stroke="#12293b" stroke-width="2.5" stroke-dasharray="12 9" marker-end="url(#arrow)"/>
-    <g transform="translate(722,170) rotate(-5) scale(1.5)">
-      <rect x="3" y="3" width="44" height="56" fill="#12293b" opacity=".18"/>
-      <rect x="0" y="0" width="44" height="56" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
-      <rect x="8" y="12" width="26" height="6" fill="#c8502e"/>
-      <rect x="8" y="24" width="26" height="6" fill="#e8b64c"/>
-      <rect x="8" y="36" width="18" height="6" fill="#e8b64c"/>
+  </g>
+  <path
+     d="M 200.80079,216.00647 C 472.90086,70.943988 622.73857,86.240881 848.60318,164.68141"
+     fill="none"
+     stroke="#12293b"
+     stroke-width="2.27759"
+     stroke-dasharray="12, 9"
+     marker-end="url(#arrow)"
+     id="path35"
+     inkscape:label="Work Arrow"
+     transform="translate(-1.8559386e-6)"
+     sodipodi:nodetypes="cc" />
+  <path
+     d="m 696.77947,244.77155 q -240,18 -480,0"
+     fill="none"
+     stroke="#12293b"
+     stroke-width="2.5"
+     stroke-dasharray="12, 9"
+     marker-end="url(#arrow)"
+     id="path39" />
+  <g
+     transform="matrix(1.4917828,0.15679269,-0.15679269,1.4917828,507.72824,49.400875)"
+     id="g39"
+     inkscape:label="Work">
+    <rect
+       x="3"
+       y="3"
+       width="44"
+       height="56"
+       fill="#12293b"
+       opacity="0.18"
+       id="rect35" />
+    <rect
+       x="0"
+       y="0"
+       width="44"
+       height="56"
+       fill="#f4e9d0"
+       stroke="#12293b"
+       stroke-width="2"
+       id="rect36" />
+    <path
+       d="M 32,0 44,12 H 32 Z"
+       fill="#12293b"
+       id="path36" />
+    <g
+       stroke="#12293b"
+       stroke-width="2"
+       id="g38">
+      <line
+         x1="8"
+         y1="22"
+         x2="34"
+         y2="22"
+         id="line36" />
+      <line
+         x1="8"
+         y1="30"
+         x2="34"
+         y2="30"
+         id="line37" />
+      <line
+         x1="8"
+         y1="38"
+         x2="26"
+         y2="38"
+         id="line38" />
     </g>
   </g>
   <!-- the hero's frame: a rule on the mat and a hairline at the picture edge -->
-  <rect x="7.5" y="7.5" width="1265" height="365" fill="none" stroke="#d9a441" stroke-width="3"/>
-  <rect x="14.5" y="14.5" width="1251" height="351" fill="none" stroke="#d9a441" stroke-width="1"/>
+  <g
+     transform="matrix(1.494292,-0.13073361,0.13073361,1.494292,469.702,218.60787)"
+     id="g43"
+     inkscape:label="tasks">
+    <rect
+       x="3"
+       y="3"
+       width="44"
+       height="56"
+       fill="#12293b"
+       opacity="0.18"
+       id="rect39" />
+    <rect
+       x="0"
+       y="0"
+       width="44"
+       height="56"
+       fill="#f4e9d0"
+       stroke="#12293b"
+       stroke-width="2"
+       id="rect40" />
+    <rect
+       x="8"
+       y="12"
+       width="26"
+       height="6"
+       fill="#c8502e"
+       id="rect41" />
+    <rect
+       x="8"
+       y="24"
+       width="26"
+       height="6"
+       fill="#e8b64c"
+       id="rect42" />
+    <rect
+       x="8"
+       y="36"
+       width="18"
+       height="6"
+       fill="#e8b64c"
+       id="rect43" />
+  </g>
+  <rect
+     x="7.5"
+     y="7.5"
+     width="1265"
+     height="365"
+     fill="none"
+     stroke="#d9a441"
+     stroke-width="3"
+     id="rect44" />
+  <rect
+     x="14.5"
+     y="14.5"
+     width="1251"
+     height="351"
+     fill="none"
+     stroke="#d9a441"
+     stroke-width="1"
+     id="rect45" />
+  <g
+     id="g43-1"
+     inkscape:label="Ocean Liner"
+     transform="matrix(0.83311583,0,0,0.83311583,277.0687,-19.622577)">
+    <rect
+       x="620"
+       y="268"
+       width="440"
+       height="34"
+       fill="#f4e9d0"
+       id="rect22" />
+    <!-- hull -->
+    <path
+       d="m 505,302.99136 55,63.83861 h 560 l 60,-63.83861 q -330,-19.64265 -675,0 z"
+       fill="#152f42"
+       id="path20"
+       style="fill:#19354d;fill-opacity:1;stroke-width:1.108" />
+    <path
+       d="m 539.88175,344.73199 600.02845,1.03381 21.4434,-22.39948 -638.17805,0.68921 z"
+       fill="#0e2233"
+       id="path21"
+       style="stroke-width:1.10253"
+       sodipodi:nodetypes="ccccc" />
+    <!-- boot stripe -->
+    <path
+       d="m 520.9676,322.63401 h 640.3958 l 7.9676,-9.82133 q -320.69588,-17.18731 -656.331,0 z"
+       fill="#c8502e"
+       id="path22"
+       style="stroke-width:1.10575" />
+    <!-- superstructure -->
+    <rect
+       x="660"
+       y="242"
+       width="360"
+       height="28"
+       fill="#f4e9d0"
+       id="rect23" />
+    <rect
+       x="700"
+       y="220"
+       width="301.35214"
+       height="24"
+       fill="#e9dcbd"
+       id="rect24"
+       style="stroke-width:1.03743" />
+    <!-- portholes -->
+    <g
+       fill="#152f42"
+       id="g35">
+      <circle
+         cx="656"
+         cy="285"
+         r="4"
+         id="circle24" />
+      <circle
+         cx="688"
+         cy="285"
+         r="4"
+         id="circle25" />
+      <circle
+         cx="720"
+         cy="285"
+         r="4"
+         id="circle26" />
+      <circle
+         cx="752"
+         cy="285"
+         r="4"
+         id="circle27" />
+      <circle
+         cx="784"
+         cy="285"
+         r="4"
+         id="circle28" />
+      <circle
+         cx="816"
+         cy="285"
+         r="4"
+         id="circle29" />
+      <circle
+         cx="848"
+         cy="285"
+         r="4"
+         id="circle30" />
+      <circle
+         cx="880"
+         cy="285"
+         r="4"
+         id="circle31" />
+      <circle
+         cx="912"
+         cy="285"
+         r="4"
+         id="circle32" />
+      <circle
+         cx="944"
+         cy="285"
+         r="4"
+         id="circle33" />
+      <circle
+         cx="976"
+         cy="285"
+         r="4"
+         id="circle34" />
+      <circle
+         cx="1008"
+         cy="285"
+         r="4"
+         id="circle35" />
+    </g>
+    <!-- funnels, raked aft (bow is left) -->
+    <g
+       id="g40">
+      <path
+         d="m 742,220 h 44 l 8,-52 h -44 z"
+         fill="#c8502e"
+         id="path35-5" />
+      <path
+         d="m 747,168 h 50 l 2,-12 h -50 z"
+         fill="#12293b"
+         id="path36-5" />
+      <path
+         d="m 842,220 h 44 l 8,-52 h -44 z"
+         fill="#c8502e"
+         id="path37" />
+      <path
+         d="m 847,168 h 50 l 2,-12 h -50 z"
+         fill="#12293b"
+         id="path38" />
+      <path
+         d="m 942,220 h 44 l 8,-52 h -44 z"
+         fill="#c8502e"
+         id="path39-8" />
+      <path
+         d="m 947,168 h 50 l 2,-12 h -50 z"
+         fill="#12293b"
+         id="path40" />
+    </g>
+    <!-- idle wisps: the liner is not steaming, it is being towed -->
+    <g
+       fill="#d9cdb0"
+       opacity="0.6"
+       id="g42"
+       inkscape:label="smoke">
+      <circle
+         cx="778"
+         cy="144"
+         r="9"
+         id="circle40"
+         style="fill:url(#radialGradient84)" />
+      <circle
+         cx="878"
+         cy="142"
+         r="8"
+         id="circle41"
+         style="fill:url(#radialGradient82)" />
+      <circle
+         cx="978"
+         cy="144"
+         r="9"
+         id="circle42"
+         style="fill:url(#radialGradient80)" />
+    </g>
+    <!-- masts -->
+  </g>
+  <g
+     id="g53"
+     inkscape:label="Tug Boat"
+     transform="matrix(0.70465503,0,0,0.70465503,-43.128184,35.791077)">
+    <path
+       d="m 262.34612,357.51737 q -16,-8 -30,0 16,8 30,4 z"
+       fill="#f4e9d0"
+       opacity="0.85"
+       id="path52"
+       inkscape:label="Front Splash"
+       style="fill:url(#radialGradient76)" />
+    <path
+       d="m 349.03352,356.93114 q 16,-6 28,0 -14,6 -28,4 z"
+       fill="#f4e9d0"
+       opacity="0.6"
+       id="path53"
+       inkscape:label="Back splash"
+       style="fill:url(#radialGradient78)" />
+    <path
+       d="m 371.03292,357.93295 q 16,-6 28,0 -14,6 -28,4 z"
+       fill="#f4e9d0"
+       opacity="0.6"
+       id="path53-5"
+       inkscape:label="Back splash"
+       style="fill:url(#radialGradient78-1)" />
+    <path
+       d="m 232,319.19984 20,40.18101 h 104 l 20,-40.18101 c -49.17246,-1.57865 -95.41377,-1.57865 -144,0 z"
+       fill="#1a3a50"
+       id="path44"
+       style="stroke-width:1.05647"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       d="m 244,343.75491 h 120 l 6,-11.1614 H 238 Z"
+       fill="#c8502e"
+       id="path45"
+       style="stroke-width:1.05647" />
+    <rect
+       x="267.20657"
+       y="292"
+       width="56"
+       height="26"
+       fill="#f4e9d0"
+       id="rect45-5" />
+    <rect
+       x="281.20657"
+       y="298"
+       width="12"
+       height="9"
+       fill="#1a3a50"
+       id="rect46" />
+    <rect
+       x="303.20657"
+       y="298"
+       width="12"
+       height="9"
+       fill="#1a3a50"
+       id="rect47" />
+    <!-- funnel, hard raked aft: full steam ahead (bow is left) -->
+    <path
+       d="m 274.30957,292.58623 h 22 l 2.52057,-26.62469 h -20 z"
+       fill="#c8502e"
+       id="path47"
+       style="stroke-width:0.837048" />
+    <path
+       d="m 275.83014,265.96154 h 26 l 0.92735,-6.30585 h -26 z"
+       fill="#12293b"
+       id="path48"
+       style="stroke-width:0.837048" />
+    <!-- working smoke: big, trailing aft toward the liner -->
+    <g
+       fill="#3d5a6e"
+       opacity="0.85"
+       id="g52"
+       inkscape:label="Smoke"
+       transform="translate(-43.380855,15.241922)">
+      <circle
+         cx="336"
+         cy="234"
+         r="11"
+         id="circle48"
+         style="fill:url(#radialGradient74)" />
+      <circle
+         cx="350.96527"
+         cy="219.75868"
+         r="14"
+         id="circle49"
+         style="fill:url(#radialGradient72)" />
+      <circle
+         cx="374.27542"
+         cy="200.24132"
+         r="17"
+         id="circle50"
+         style="fill:url(#radialGradient70)" />
+      <circle
+         cx="402.41318"
+         cy="186.82755"
+         r="20"
+         id="circle51"
+         style="fill:url(#radialGradient68)" />
+      <circle
+         cx="439.06827"
+         cy="181.51736"
+         r="22"
+         id="circle52"
+         style="fill:url(#radialGradient66)" />
+    </g>
+    <!-- bow wave: the tug makes the wake -->
+  </g>
 </svg>

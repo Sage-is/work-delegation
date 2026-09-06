@@ -21,15 +21,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="1.1240093"
-     inkscape:cx="826.95046"
-     inkscape:cy="339.85484"
+     inkscape:zoom="1.3020915"
+     inkscape:cx="679.29176"
+     inkscape:cy="281.08624"
      inkscape:window-width="2560"
      inkscape:window-height="1381"
      inkscape:window-x="0"
      inkscape:window-y="31"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g43" />
+     inkscape:current-layer="svg64" />
   <defs
      id="defs5">
     <linearGradient
@@ -409,29 +409,37 @@
        id="circle16" />
   </g>
   <!-- sea bands -->
-  <rect
-     x="24"
-     y="330"
-     width="1232"
-     height="166"
-     fill="url(#sea)"
-     id="rect16"
-     inkscape:label="Sea"
-     style="display:inline" />
-  <path
-     d="M24 330 Q86 318 148 330 T272 330 T396 330 T520 330 T644 330 T768 330 T892 330 T1016 330 T1140 330 T1256 330 L1256 344 L24 344 Z"
-     fill="#2a6178"
-     id="path16" />
-  <path
-     d="M24 368 Q86 358 148 368 T272 368 T396 368 T520 368 T644 368 T768 368 T892 368 T1016 368 T1140 368 T1256 368 L1256 378 L24 378 Z"
-     fill="#24566d"
-     opacity="0.9"
-     id="path17" />
-  <path
-     d="M24 408 Q104 398 184 408 T344 408 T504 408 T664 408 T824 408 T984 408 T1144 408 T1256 408 L1256 418 L24 418 Z"
-     fill="#1c4a60"
-     opacity="0.9"
-     id="path18" />
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Sea">
+    <rect
+       x="24"
+       y="330"
+       width="1232"
+       height="166"
+       fill="url(#sea)"
+       id="rect16"
+       inkscape:label="Sea"
+       style="display:inline" />
+    <path
+       d="M24 408 Q104 398 184 408 T344 408 T504 408 T664 408 T824 408 T984 408 T1144 408 T1256 408 L1256 418 L24 418 Z"
+       fill="#1c4a60"
+       opacity="0.9"
+       id="path18"
+       inkscape:label="Wave 3" />
+    <path
+       d="m 24,324 q 62,-12 124,0 62,12 124,0 62,-12 124,0 62,12 124,0 62,-12 124,0 62,12 124,0 62,-12 124,0 62,12 124,0 62,-12 124,0 62,12 116,0 v 14 H 24 Z"
+       fill="#2a6178"
+       id="path16"
+       inkscape:label="Wave 1" />
+    <path
+       d="m 24,374 q 62,-10 124,0 62,10 124,0 62,-10 124,0 62,10 124,0 62,-10 124,0 62,10 124,0 62,-10 124,0 62,10 124,0 62,-10 124,0 62,10 116,0 v 10 H 24 Z"
+       fill="#24566d"
+       opacity="0.9"
+       id="path17"
+       inkscape:label="Wave 2" />
+  </g>
   <!-- towline: tug to liner -->
   <path
      d="m 370.97468,321.35277 c 50.57578,-4.82047 95.21079,-4.30915 144.45713,-12.53551"
@@ -443,7 +451,8 @@
      sodipodi:nodetypes="cc" />
   <!-- the liner: large, stately, aft of the tug -->
   <g
-     id="g43">
+     id="g43"
+     inkscape:label="Ocean Liner">
     <rect
        x="620"
        y="268"
@@ -456,12 +465,13 @@
        d="m 505,302.99136 55,63.83861 h 560 l 60,-63.83861 q -330,-19.64265 -675,0 z"
        fill="#152f42"
        id="path20"
-       style="stroke-width:1.108" />
+       style="stroke-width:1.108;fill:#19354d;fill-opacity:1" />
     <path
-       d="m 539.88175,344.73199 h 600.02845 l 13.8621,-19.64265 H 528 Z"
+       d="m 539.88175,344.73199 600.02845,1.03381 21.4434,-22.39948 -638.17805,0.68921 z"
        fill="#0e2233"
        id="path21"
-       style="stroke-width:1.10253" />
+       style="stroke-width:1.10253"
+       sodipodi:nodetypes="ccccc" />
     <!-- boot stripe -->
     <path
        d="m 520.9676,322.63401 h 640.3958 l 7.9676,-9.82133 q -320.69588,-17.18731 -656.331,0 z"
