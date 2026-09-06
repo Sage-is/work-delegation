@@ -625,10 +625,10 @@
      transform="translate(-1.8559386e-6)"
      sodipodi:nodetypes="cc" />
   <path
-     d="m 696.77947,244.77155 q -240,18 -480,0"
+     d="m 696.4737,246.03404 q -235.48267,21.79644 -470.96534,0"
      fill="none"
      stroke="#12293b"
-     stroke-width="2.5"
+     stroke-width="2.72502"
      stroke-dasharray="12, 9"
      marker-end="url(#arrow)"
      id="path39" />
@@ -683,7 +683,7 @@
   </g>
   <!-- the hero's frame: a rule on the mat and a hairline at the picture edge -->
   <g
-     transform="matrix(1.494292,-0.13073361,0.13073361,1.494292,469.702,218.60787)"
+     transform="matrix(1.494292,-0.13073361,0.13073361,1.494292,466.61579,213.207)"
      id="g43"
      inkscape:label="tasks">
     <rect
@@ -911,7 +911,7 @@
   <g
      id="g53"
      inkscape:label="Tug Boat"
-     transform="matrix(0.70465503,0,0,0.70465503,-43.128184,35.791077)">
+     transform="matrix(0.70465503,0,0,0.70465503,-50.843719,22.674667)">
     <path
        d="m 262.34612,357.51737 q -16,-8 -30,0 16,8 30,4 z"
        fill="#f4e9d0"

@@ -1,84 +1,471 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 380" role="img" aria-label="A harbour with a lighthouse and five coloured channel buoys. The first channel is closed with a red cross; the tug turns from it into the second channel, while the liner arrives at the right edge against the sun.">
-  <defs>
-    <marker id="arrow-cream" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#f4e9d0"/></marker>
-    <clipPath id="inner"><rect x="14" y="14" width="1252" height="352"/></clipPath>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1280 380"
+   role="img"
+   aria-label="A harbour with a lighthouse and five coloured channel buoys. The first channel is closed with a red cross; the tug turns from it into the second channel, while the liner arrives at the right edge against the sun."
+   version="1.1"
+   id="svg36"
+   sodipodi:docname="lanes.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview36"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.0149203"
+     inkscape:cx="922.73255"
+     inkscape:cy="146.80956"
+     inkscape:window-width="2560"
+     inkscape:window-height="1381"
+     inkscape:window-x="0"
+     inkscape:window-y="31"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg36" />
+  <defs
+     id="defs1">
+    <marker
+       id="arrow-cream"
+       viewBox="0 0 10 10"
+       refX="8"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto">
+      <path
+         d="M0,0 L10,5 L0,10 Z"
+         fill="#f4e9d0"
+         id="path1" />
+    </marker>
+    <clipPath
+       id="inner">
+      <rect
+         x="14"
+         y="14"
+         width="1252"
+         height="352"
+         id="rect1" />
+    </clipPath>
   </defs>
-  <rect width="1280" height="380" fill="#12293b"/>
-  <rect x="14" y="14" width="1252" height="352" fill="#f4e9d0"/>
-  <g clip-path="url(#inner)">
+  <rect
+     width="1280"
+     height="380"
+     fill="#12293b"
+     id="rect2" />
+  <rect
+     x="14"
+     y="14"
+     width="1252"
+     height="352"
+     fill="#f4e9d0"
+     id="rect3" />
+  <g
+     clip-path="url(#inner)"
+     id="g35">
     <!-- sun on the horizon behind the arriving liner -->
-    <g fill="#e8b64c" opacity=".16">
-      <path d="M1150,262 L560,14 L650,14 Z M1150,262 L820,14 L900,14 Z M1150,262 L1060,14 L1140,14 Z M1150,262 L1266,40 L1266,110 Z M1150,262 L300,90 L300,150 Z"/>
+    <g
+       fill="#e8b64c"
+       opacity=".16"
+       id="g3">
+      <path
+         d="M 1150,262 169.934,14 423.40564,12.920979 Z m 0,0 L 654.90983,12.381469 784.54478,13.46049 Z m 0,0 -165.53145,-248 90.25065,1.079021 z m 0,0 59.3514,-247.356988 55.8393,-0.337929 L 1266,110 Z m 0,0 L 13.503668,62.956098 l 0.09591,63.255452 z"
+         id="path3"
+         sodipodi:nodetypes="ccccccccccccccccccccc" />
     </g>
-    <circle cx="1150" cy="262" r="64" fill="#e8b64c"/>
+    <circle
+       cx="1150"
+       cy="262"
+       r="64"
+       fill="#e8b64c"
+       id="circle3" />
     <!-- sea -->
-    <rect x="14" y="262" width="1252" height="40" fill="#3d5a6e"/>
-    <rect x="14" y="300" width="1252" height="34" fill="#1a3a50"/>
-    <rect x="14" y="334" width="1252" height="32" fill="#12293b"/>
-    <g stroke="#f4e9d0" stroke-width="1.5" fill="none" opacity=".4">
-      <path d="M40,286 q30,-8 60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/>
-      <path d="M20,322 q30,-8 60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0"/>
+    <rect
+       x="14"
+       y="262"
+       width="1252"
+       height="40"
+       fill="#3d5a6e"
+       id="rect4" />
+    <rect
+       x="14"
+       y="300"
+       width="1252"
+       height="34"
+       fill="#1a3a50"
+       id="rect5" />
+    <rect
+       x="14"
+       y="334"
+       width="1252"
+       height="32"
+       fill="#12293b"
+       id="rect6" />
+    <g
+       stroke="#f4e9d0"
+       stroke-width="1.5"
+       fill="none"
+       opacity=".4"
+       id="g7">
+      <path
+         d="M40,286 q30,-8 60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0"
+         id="path6" />
+      <path
+         d="M20,322 q30,-8 60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0"
+         id="path7" />
     </g>
     <!-- the arriving liner, cropped by the frame, a hull in the water -->
-    <g>
-      <g fill="#3d5a6e">
-        <rect x="1104" y="238" width="200" height="24"/>
-        <rect x="1140" y="222" width="160" height="16"/>
-        <path d="M1168,222 L1186,222 L1190,190 L1172,190 Z"/><path d="M1212,222 L1230,222 L1234,190 L1216,190 Z"/><path d="M1256,222 L1274,222 L1278,190 L1260,190 Z"/>
-        <rect x="1150" y="164" width="3" height="58"/>
+    <g
+       id="g14">
+      <g
+         fill="#3d5a6e"
+         id="g10">
+        <rect
+           x="1104"
+           y="238"
+           width="200"
+           height="24"
+           id="rect7" />
+        <rect
+           x="1140"
+           y="222"
+           width="160"
+           height="16"
+           id="rect8" />
+        <path
+           d="M1168,222 L1186,222 L1190,190 L1172,190 Z"
+           id="path8" />
+        <path
+           d="M1212,222 L1230,222 L1234,190 L1216,190 Z"
+           id="path9" />
+        <path
+           d="M1256,222 L1274,222 L1278,190 L1260,190 Z"
+           id="path10" />
+        <rect
+           x="1150"
+           y="164"
+           width="3"
+           height="58"
+           id="rect10" />
       </g>
-      <g fill="#f4e9d0" opacity=".7"><path d="M1172,195 L1190,195 L1191,190 L1173,190 Z"/><path d="M1216,195 L1234,195 L1235,190 L1217,190 Z"/><path d="M1260,195 L1278,195 L1279,190 L1261,190 Z"/></g>
-      <path d="M1064,262 L1086,292 L1300,292 L1300,262 Z" fill="#12293b"/>
-      <rect x="1070" y="262" width="230" height="5" fill="#c8502e"/>
+      <g
+         fill="#f4e9d0"
+         opacity=".7"
+         id="g13">
+        <path
+           d="m 1171.5609,195 17.7805,-0.10977 0.6707,-5 L 1171.7925,190 Z"
+           id="path11"
+           sodipodi:nodetypes="ccccc" />
+        <path
+           d="M 1215.1219,195 H 1234 l 1,-5 h -19.0977 z"
+           id="path12"
+           sodipodi:nodetypes="ccccc" />
+        <path
+           d="M 1259.3414,195.10977 1278,195 l 1,-5 h -19.2075 z"
+           id="path13"
+           sodipodi:nodetypes="ccccc" />
+      </g>
+      <path
+         d="M1064,262 L1086,292 L1300,292 L1300,262 Z"
+         fill="#12293b"
+         id="path14" />
+      <rect
+         x="1064.2052"
+         y="262.14557"
+         width="235.79474"
+         height="4.8544312"
+         fill="#c8502e"
+         id="rect14"
+         style="paint-order:stroke fill markers" />
     </g>
     <!-- breakwater and lighthouse -->
-    <rect x="14" y="250" width="140" height="26" fill="#12293b"/>
-    <rect x="14" y="250" width="140" height="5" fill="#f4e9d0"/>
-    <path d="M76,250 L86,150 L122,150 L132,250 Z" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
-    <rect x="82" y="190" width="44" height="14" fill="#c8502e"/>
-    <rect x="79" y="222" width="50" height="14" fill="#c8502e"/>
-    <rect x="90" y="132" width="28" height="18" fill="#e8b64c" stroke="#12293b" stroke-width="2"/>
-    <path d="M86,132 L104,116 L122,132 Z" fill="#12293b"/>
+    <rect
+       x="14"
+       y="250"
+       width="140"
+       height="26"
+       fill="#12293b"
+       id="rect15" />
+    <rect
+       x="14"
+       y="250"
+       width="140"
+       height="5"
+       fill="#f4e9d0"
+       id="rect16" />
+    <path
+       d="M76,250 L86,150 L122,150 L132,250 Z"
+       fill="#f4e9d0"
+       stroke="#12293b"
+       stroke-width="2"
+       id="path16" />
+    <rect
+       x="82"
+       y="190"
+       width="44"
+       height="14"
+       fill="#c8502e"
+       id="rect17" />
+    <rect
+       x="79"
+       y="222"
+       width="50"
+       height="14"
+       fill="#c8502e"
+       id="rect18" />
+    <rect
+       x="90"
+       y="132"
+       width="28"
+       height="18"
+       fill="#e8b64c"
+       stroke="#12293b"
+       stroke-width="2"
+       id="rect19" />
+    <path
+       d="M86,132 L104,116 L122,132 Z"
+       fill="#12293b"
+       id="path19" />
     <!-- five channel buoys: the closed one is slate under a red cross; the open one is gold -->
-    <g>
-      <line x1="440" y1="290" x2="440" y2="246" stroke="#12293b" stroke-width="3"/>
-      <path d="M416,290 q24,-30 48,0 Z" fill="#3d5a6e" stroke="#12293b" stroke-width="3"/>
-      <rect x="426" y="280" width="28" height="5" fill="#f4e9d0"/>
-      <path d="M424,222 L456,254 M456,222 L424,254" stroke="#c8502e" stroke-width="8" stroke-linecap="round"/>
-
-      <line x1="600" y1="290" x2="600" y2="240" stroke="#12293b" stroke-width="3"/>
-      <path d="M576,290 q24,-30 48,0 Z" fill="#e8b64c" stroke="#12293b" stroke-width="3"/>
-      <circle cx="600" cy="234" r="9" fill="#c8502e" stroke="#12293b" stroke-width="2"/>
-
-      <line x1="740" y1="290" x2="740" y2="240" stroke="#12293b" stroke-width="3"/>
-      <path d="M716,290 q24,-30 48,0 Z" fill="#c8502e" stroke="#12293b" stroke-width="3"/>
-      <path d="M740,220 L753,236 L740,252 L727,236 Z" fill="#12293b" stroke="#12293b" stroke-width="2"/>
-
-      <line x1="880" y1="290" x2="880" y2="240" stroke="#12293b" stroke-width="3"/>
-      <path d="M856,290 q24,-30 48,0 Z" fill="#f4e9d0" stroke="#12293b" stroke-width="3"/>
-      <rect x="866" y="280" width="28" height="5" fill="#12293b"/>
-      <circle cx="880" cy="234" r="9" fill="#12293b"/>
-
-      <line x1="1020" y1="290" x2="1020" y2="240" stroke="#12293b" stroke-width="3"/>
-      <path d="M996,290 q24,-30 48,0 Z" fill="#12293b" stroke="#12293b" stroke-width="3"/>
-      <rect x="1006" y="279" width="28" height="5" fill="#e8b64c"/>
-      <path d="M1020,224 L1030,236 L1020,248 L1010,236 Z" fill="#e8b64c" stroke="#12293b" stroke-width="2"/>
+    <g
+       id="g27">
+      <line
+         x1="440"
+         y1="290"
+         x2="440"
+         y2="246"
+         stroke="#12293b"
+         stroke-width="3"
+         id="line19" />
+      <path
+         d="M416,290 q24,-30 48,0 Z"
+         fill="#3d5a6e"
+         stroke="#12293b"
+         stroke-width="3"
+         id="path20" />
+      <rect
+         x="426"
+         y="280"
+         width="28"
+         height="5"
+         fill="#f4e9d0"
+         id="rect20" />
+      <path
+         d="M424,222 L456,254 M456,222 L424,254"
+         stroke="#c8502e"
+         stroke-width="8"
+         stroke-linecap="round"
+         id="path21" />
+      <line
+         x1="600"
+         y1="290"
+         x2="600"
+         y2="240"
+         stroke="#12293b"
+         stroke-width="3"
+         id="line21" />
+      <path
+         d="M576,290 q24,-30 48,0 Z"
+         fill="#e8b64c"
+         stroke="#12293b"
+         stroke-width="3"
+         id="path22" />
+      <circle
+         cx="600"
+         cy="234"
+         r="9"
+         fill="#c8502e"
+         stroke="#12293b"
+         stroke-width="2"
+         id="circle22" />
+      <line
+         x1="740"
+         y1="290"
+         x2="740"
+         y2="240"
+         stroke="#12293b"
+         stroke-width="3"
+         id="line22" />
+      <path
+         d="M716,290 q24,-30 48,0 Z"
+         fill="#c8502e"
+         stroke="#12293b"
+         stroke-width="3"
+         id="path23" />
+      <path
+         d="M740,220 L753,236 L740,252 L727,236 Z"
+         fill="#12293b"
+         stroke="#12293b"
+         stroke-width="2"
+         id="path24" />
+      <line
+         x1="880"
+         y1="290"
+         x2="880"
+         y2="240"
+         stroke="#12293b"
+         stroke-width="3"
+         id="line24" />
+      <path
+         d="M856,290 q24,-30 48,0 Z"
+         fill="#f4e9d0"
+         stroke="#12293b"
+         stroke-width="3"
+         id="path25" />
+      <rect
+         x="862.44373"
+         y="280"
+         width="34.465946"
+         height="5"
+         fill="#12293b"
+         id="rect25" />
+      <circle
+         cx="880"
+         cy="234"
+         r="9"
+         fill="#12293b"
+         id="circle25" />
+      <line
+         x1="1020"
+         y1="290"
+         x2="1020"
+         y2="240"
+         stroke="#12293b"
+         stroke-width="3"
+         id="line25" />
+      <path
+         d="M996,290 q24,-30 48,0 Z"
+         fill="#12293b"
+         stroke="#12293b"
+         stroke-width="3"
+         id="path26" />
+      <rect
+         x="1006"
+         y="279"
+         width="28"
+         height="5"
+         fill="#e8b64c"
+         id="rect26" />
+      <path
+         d="M1020,224 L1030,236 L1020,248 L1010,236 Z"
+         fill="#e8b64c"
+         stroke="#12293b"
+         stroke-width="2"
+         id="path27" />
     </g>
     <!-- the tug, bow to the right, funnel raked aft, smoke trailing aft -->
-    <g transform="translate(190,0)">
-      <g fill="#12293b" opacity=".5"><circle cx="44" cy="222" r="5"/><circle cx="34" cy="210" r="6"/><circle cx="22" cy="199" r="7"/></g>
-      <path d="M40,262 L54,262 L52,232 L38,232 Z" fill="#c8502e"/>
-      <path d="M36,236 L54,236 L53,230 L35,230 Z" fill="#12293b"/>
-      <rect x="22" y="262" width="56" height="26" fill="#f4e9d0" stroke="#12293b" stroke-width="2"/>
-      <rect x="32" y="269" width="10" height="8" fill="#12293b"/><rect x="50" y="269" width="10" height="8" fill="#12293b"/>
-      <path d="M-14,288 L4,314 L110,314 L128,288 Z" fill="#12293b"/>
-      <rect x="-10" y="288" width="134" height="8" fill="#c8502e"/>
+    <g
+       transform="translate(190,0)"
+       id="g33">
+      <g
+         fill="#12293b"
+         opacity=".5"
+         id="g29">
+        <circle
+           cx="44"
+           cy="222"
+           r="5"
+           id="circle27" />
+        <circle
+           cx="34"
+           cy="210"
+           r="6"
+           id="circle28" />
+        <circle
+           cx="22"
+           cy="199"
+           r="7"
+           id="circle29" />
+      </g>
+      <path
+         d="M40,262 L54,262 L52,232 L38,232 Z"
+         fill="#c8502e"
+         id="path29" />
+      <path
+         d="M36,236 L54,236 L53,230 L35,230 Z"
+         fill="#12293b"
+         id="path30" />
+      <rect
+         x="22"
+         y="262"
+         width="56"
+         height="26"
+         fill="#f4e9d0"
+         stroke="#12293b"
+         stroke-width="2"
+         id="rect30" />
+      <rect
+         x="32"
+         y="269"
+         width="10"
+         height="8"
+         fill="#12293b"
+         id="rect31" />
+      <rect
+         x="50"
+         y="269"
+         width="10"
+         height="8"
+         fill="#12293b"
+         id="rect32" />
+      <path
+         d="M-14,288 L4,314 L110,314 L128,288 Z"
+         fill="#12293b"
+         id="path32" />
+      <rect
+         x="-10"
+         y="288"
+         width="134"
+         height="8"
+         fill="#c8502e"
+         id="rect33" />
     </g>
-    <path d="M40,334 Q120,326 176,312" stroke="#f4e9d0" stroke-width="4" fill="none" opacity=".6"/>
+    <path
+       d="M40,334 Q120,326 176,312"
+       stroke="#f4e9d0"
+       stroke-width="4"
+       fill="none"
+       opacity=".6"
+       id="path33" />
     <!-- course: toward the closed buoy, then the turn into the open channel -->
-    <path d="M326,300 L412,300" fill="none" stroke="#c8502e" stroke-width="4" stroke-dasharray="8 6"/>
-    <path d="M340,300 Q450,346 596,306" fill="none" stroke="#f4e9d0" stroke-width="4" stroke-dasharray="14 8" marker-end="url(#arrow-cream)"/>
+    <path
+       d="M326,300 L412,300"
+       fill="none"
+       stroke="#c8502e"
+       stroke-width="4"
+       stroke-dasharray="8 6"
+       id="path34" />
+    <path
+       d="M340,300 Q450,346 596,306"
+       fill="none"
+       stroke="#f4e9d0"
+       stroke-width="4"
+       stroke-dasharray="14 8"
+       marker-end="url(#arrow-cream)"
+       id="path35" />
   </g>
-  <rect x="7.5" y="7.5" width="1265" height="365" fill="none" stroke="#d9a441" stroke-width="3"/>
-  <rect x="14.5" y="14.5" width="1251" height="351" fill="none" stroke="#d9a441" stroke-width="1"/>
+  <rect
+     x="7.5"
+     y="7.5"
+     width="1265"
+     height="365"
+     fill="none"
+     stroke="#d9a441"
+     stroke-width="3"
+     id="rect35" />
+  <rect
+     x="14.5"
+     y="14.5"
+     width="1251"
+     height="351"
+     fill="none"
+     stroke="#d9a441"
+     stroke-width="1"
+     id="rect36" />
 </svg>
