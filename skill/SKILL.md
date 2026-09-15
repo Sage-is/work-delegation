@@ -160,36 +160,41 @@ Do NOT delegate:
 - Hardlinked files, or anything in bot-owned paths
 - When `DELEGATE=0`
 
-## Routing (matrix 2026-09-04)
+## Routing (matrix 2026-09-13)
 
-Default lanes:
+Default lanes, for every tier:
 
 ```bash
-delegate-edit <dir> go/deepseek-v4-flash,go/kimi-k3,zen/big-pickle "<brief>" [files...]
+delegate-edit <dir> go/deepseek-v4.1-flash,go/minimax-m3,opencode/big-pickle "<brief>" [files...]
 ```
 
-The agent walks the list and stops at the first lane that answers. Measured
-2026-09-04 (`results/matrix-2026-09-04.md`):
+Direct lanes run in order and stop at the first that answers. A list may end
+in one `opencode/` lane: when every direct lane fails before editing, the
+wrapper hands the brief to the opencode CLI. One list serves each tier:
 
-- `go/deepseek-v4-flash`: the go-to (Alexander, 2026-09-04). 3/4 correct at
-  7-13s per task, the fastest lane; its one miss was a guide that came out
-  shorter than asked, not a wrong edit.
-- `go/kimi-k3`: 4/4 correct, 6-38s per task. Second lane, and the one to pick
-  for long prose.
-- `ollama/qwen3.5:9b`: the offline lane. No key, no network. 2/4 correct at
-  17-72s with one 90s timeout; a fallback, not a first choice.
-- `claude/sonnet`: 4/4 correct at about $0.10 a task. Use it when the cheap
-  lanes botch the diff.
-- `nvidia/nemotron-3.5-lightning-30b-a3b`: 3/4 correct, 10s on short tasks,
-  timed out on the long guide. A free lane to add after the Go pair.
-- `zen/big-pickle`: the free lane, third in the list, 4/4 correct at 6-14s
-  once the client gate is passed. Zen's free models
-  answer 429 `FreeUsageLimitError` to any client whose User-Agent does not
-  start with `opencode/`, before quota is looked at; the agent sends
-  `opencode/<installed version> delegate-agent/1 (work-delegation)` on zen/
-  lanes for that reason. The real limit is per IP per UTC day and is shared
-  with the TUI; a genuine 429 costs a second and the list hops on.
-- `zen/claude-*` returns 401 without Zen billing.
+- Go plan: `go/deepseek-v4.1-flash` answers, 4/4 correct at 8-19s ($60
+  monthly limit while opencode's 4x promotion lasts). `go/minimax-m3` is
+  second, 4/4 at 8-15s. Go answers 400 `MissingSessionID` without a stable
+  `x-opencode-session` (2026-09-07 on); the agent sends one per lane.
+- Free: with no Go key the go/ lanes skip in milliseconds and
+  `opencode/big-pickle` runs through the CLI, 4/4 at 18-44s
+  (`opencode/mimo-v2.5-free` also 4/4, 28-62s). Zen's free tier tells any
+  other client "can only be used in OpenCode", so `zen/<free model>` lanes no
+  longer work. Free models may train on what you send.
+- Zen API: opt in with your own list, e.g.
+  `zen/deepseek-v4-flash,zen/minimax-m3,opencode/big-pickle`. Zen bills per
+  request and auto-reloads $20, so no default spends it. Untested here: this
+  machine has no Zen billing (401).
+
+Also measured 2026-09-13 (`results/matrix-2026-09-13.md`): `go/hy3` and
+`go/longcat-2.0` 4/4; `go/mimo-v2.5` 4/4 but 54-138s; `go/kimi-k2.7-code`,
+`go/qwen3.8-flash`, `go/deepseek-v4-flash` 3/4; `go/kimi-k3` 2/4 with a 120s
+timeout, and the costliest Go lane ($3 per 5 hours).
+`opencode/nemotron-3.5-lightning-free` stalled.
+
+- `ollama/qwen3.5:9b`: offline, no key. 2/4 on 2026-09-04; a fallback.
+- `claude/sonnet`: 4/4 at about $0.10 a task. Use it when the cheap lanes
+  botch the diff.
 
 Small logic fixes stay inline.
 

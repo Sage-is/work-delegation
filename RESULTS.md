@@ -202,3 +202,49 @@ Things learned on the way, each now in code or tests:
   for the scoreboard; rows are keyed by repo path now.
 - The brief-size ceiling is gone. Successes ran at 2008-2884 chars and stalls
   at 80-1146, so the 3500-char refusal guarded against nothing.
+
+## Field notes — 2026-09-13 (tiers)
+
+Go broke on 2026-09-07. Every Go model answers HTTP 400 MissingSessionID
+unless the request carries a stable `x-opencode-session` header per
+conversation. Go's docs ("Where can I use it") ask clients for coding-agent
+traffic, their own User-Agent, and that header. `delegate-agent` now sends one
+id per `go/` lane.
+
+Zen's free tier now refuses direct calls even with an `opencode/` User-Agent:
+"OpenCode's free tier can only be used in OpenCode". Free models run as
+`opencode/` lanes through the opencode CLI instead. A comma list may now end in
+one `opencode/` lane, run when every direct lane fails before editing. Live
+check with the Go key hidden: both `go/` lanes skipped for no key,
+`opencode/big-pickle` made the edit in 11s.
+
+Matrix for the day, in `results/matrix-2026-09-13.md`:
+
+| Lane | Correct | Seconds per task |
+| --- | --- | --- |
+| `go/deepseek-v4.1-flash` | 4/4 | 8-19 |
+| `go/minimax-m3` | 4/4 | 8-15 |
+| `go/hy3` | 4/4 | 10-20 |
+| `go/longcat-2.0` | 4/4 | 15-24 |
+| `go/mimo-v2.5` | 4/4 | 54-138 |
+| `go/kimi-k2.7-code` | 3/4 (t1 guide came out 19 lines, brief said about 40) | 12-21 |
+| `go/qwen3.8-flash` | 3/4 (t2 dropped the "upper right" fact) | 15-41 |
+| `go/deepseek-v4-flash` | 3/4 (t2 HTTP 400 after its first edit, rc 1) | 9-16 |
+| `go/kimi-k3` | 2/4 (t1 no response in 120s; t2 dropped the "upper right" fact) | 30-122 |
+| `opencode/big-pickle` (CLI) | 4/4 | 18-44 |
+| `opencode/mimo-v2.5-free` (CLI) | 4/4 | 28-62 |
+| `opencode/nemotron-3.5-lightning-free` (CLI) | 0/4 (no response in 120s, every task) | 257-258 |
+
+Default lanes: `go/deepseek-v4.1-flash,go/minimax-m3,opencode/big-pickle`. Go
+users stop at the first lane; free users fall through to big-pickle; Zen API
+users opt in with their own `zen/` list (untested: this machine has no Zen
+billing).
+
+Things learned on the way:
+
+- `deepseek-v4.1-flash` has a $60 monthly Go limit only during a limited-time
+  4x promotion ($15 after).
+- `kimi-k3` costs about $0.022 per task, so its $3 five-hour cap covers about
+  135 tasks.
+- opencode's "requests per 5 hours" figures assume 71,300 cached tokens per
+  request, so they do not compare with delegation tasks of about 3,000 tokens.

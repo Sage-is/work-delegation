@@ -24,10 +24,19 @@
 - [ ] **Push `develop` and reconcile with `origin/develop`.** Ahead 2, behind 1 as of 2026-08-21.
 - [ ] **Add `OPENROUTER_API_KEY`** if the OpenRouter lane is wanted; the doctor lists it as unkeyed.
 - [ ] **`make doctor` fails on five historical wedge rows** (2026-08-19 and 2026-08-21) until 50 newer rows push them out of the window.
+- [ ] **Validate the Zen API tier.** `zen/deepseek-v4-flash,zen/minimax-m3,opencode/big-pickle` is documented but untested; this Mac has no Zen billing (401).
+- [ ] **Watch the DeepSeek V4.1 Flash promotion.** Its $60 Go limit is "for a limited time"; at $15 it may lose first place to `go/minimax-m3`.
+- [ ] **zen/ `opencode/` User-Agent is inert.** Zen's free tier refuses non-OpenCode clients whatever the UA (2026-09-13). Keep or drop: Alexander's call.
 
 ---
 
 ## Previous Weeks
+
+### 2026-09-13
+
+- [x] **Go lanes restored.** Go answered 400 `MissingSessionID` from 2026-09-07 on; `delegate-agent` now sends one `x-opencode-session` per go/ lane (test 9d).
+- [x] **One default list for every tier.** `go/deepseek-v4.1-flash,go/minimax-m3,opencode/big-pickle`: a list may end in one `opencode/` lane, run through the CLI when every direct lane fails before editing.
+- [x] **Matrix 2026-09-13.** Nine Go lanes and three free CLI lanes in `results/matrix-2026-09-13.md`; routing in `skill/SKILL.md`.
 
 ### 2026-09-05
 

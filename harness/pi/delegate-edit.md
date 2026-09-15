@@ -11,7 +11,7 @@ Request: $ARGUMENTS
 2. Run the wrapper. Lanes are tried in order; a lane that fails before editing hands off to the next one in seconds:
 
    ```sh
-   ~/bin/delegate-edit <project-dir> go/deepseek-v4-flash,go/kimi-k3,zen/big-pickle "<brief>" <files...>
+   ~/bin/delegate-edit <project-dir> go/deepseek-v4.1-flash,go/minimax-m3,opencode/big-pickle "<brief>" <files...>
    ```
 
    `ollama/<model>` runs offline on this machine; `claude/<model>` hands the job to Claude Code with Read, Edit, and Write only.

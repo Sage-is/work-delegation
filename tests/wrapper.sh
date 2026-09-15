@@ -72,6 +72,7 @@ check "4 diff shown on failure" "$(grep -c 'f.md' "$T/out.txt")" 1
 # 5. A comma list with a non-direct prefix is a usage error, not a run.
 reset_repo
 check "5 comma list needs direct prefixes" "$(run "$T/repo" opencode/x,go/y 'edit f.md' f.md)" 2
+check "5 claude/ may not trail a list" "$(run "$T/repo" go/y,claude/x 'edit f.md' f.md)" 2
 
 # 6. Two wrapper runs at once in one repo, each naming its own file.
 reset_repo

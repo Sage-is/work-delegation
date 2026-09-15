@@ -28,7 +28,7 @@ Quality matched at this task size. The free tier wins on speed and cost. Default
 The loop has four steps:
 
 1. You write a brief. It names the target files, the exact change, the style rules, and what must not change. It states outcomes and constraints; an oversized brief that dictates every detail cancels the savings.
-2. delegate-edit hands the brief to the first lane in your list. A lane is a provider and a model: `zen/big-pickle`, `go/kimi-k3`, `nvidia/…`, `openrouter/…`, `ollama/…` for a local model, `claude/sonnet` for Claude Code itself, or an `opencode/…` model through the opencode CLI. A lane that fails before its first edit hands off to the next one in seconds.
+2. delegate-edit hands the brief to the first lane in your list. A lane is a provider and a model: `go/deepseek-v4.1-flash`, `zen/…`, `nvidia/…`, `openrouter/…`, `ollama/…` for a local model, `claude/sonnet` for Claude Code itself, or an `opencode/…` model through the opencode CLI. A list may end in one `opencode/` lane, so free-tier users fall through to `opencode/big-pickle`. A lane that fails before its first edit hands off to the next one in seconds.
 3. The model works through five tools, read, write, edit, ls, and done, jailed to the project directory without shell, git, or network access.
 4. You read the full diff and review it before anything counts as done.
 

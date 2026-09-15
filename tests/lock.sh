@@ -135,6 +135,16 @@ check "8 --unlock --force releases" \
   "$(DELEGATE_LOCK=$LOCK DELEGATE_LOG=$LOG bash "$OC" --unlock --force >/dev/null 2>&1; echo $?)" 0
 [ -d "$LOCK" ] && bad "8 lock removed by --force" || ok "8 lock removed by --force"
 
+# 9. A list may end in one opencode/ lane: when every direct lane fails before
+#    editing, the brief goes to the opencode CLI. Here go/ has no key, so it
+#    fails without touching the network, as it does for a free-tier user.
+reset
+check "9 trailing opencode/ lane catches the fall" \
+  "$(OPENCODE_GO_API_KEY= DELEGATE_AUTH_JSON=/nonexistent run 60 "$T/repo" go/m1,test/model 'edit f.md' f.md)" 0
+check "9 ledger lane is the CLI lane" "$(last_row lane)" test/model
+check "9 ledger backend is opencode" "$(last_row backend)" opencode
+check "9 skipped lane recorded" "$(last_row lanes_skipped | grep -c 'go/m1: no key')" 1
+
 # ----------------------------------------------------------------------------
 
 echo

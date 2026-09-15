@@ -134,6 +134,18 @@ check "9c zen UA still names us" "$(printf '%s' "$ua" | grep -c 'delegate-agent/
 agent --lanes api/m1 > /dev/null
 check "9c other lanes keep our UA" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['headers'].get('User-Agent',''))")" "delegate-agent/1 (work-delegation)"
 
+# 9d. opencode.ai lanes send one stable x-opencode-session per conversation.
+reset_repo
+script '[{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"}},{"tool":"done","args":{"summary":"ok"}}]'
+OPENCODE_GO_API_KEY=k agent --lanes go/m1 > /dev/null
+# Header names are case-insensitive; urllib sends this one as X-opencode-session.
+sid() { python3 -c "import json,sys; print(' '.join({k.lower(): v for k, v in json.loads(l)['headers'].items()}.get('x-opencode-session','none') for l in open('$T/record.jsonl').readlines()[-$1:]))"; }
+sids=$(sid 2)
+check "9d go sends a session id" "$(printf '%s' "$sids" | grep -c '^delegate-[0-9a-f]\{32\} ')" 1
+check "9d same id on every turn" "$(printf '%s' "$sids" | tr ' ' '\n' | sort -u | wc -l | tr -d ' ')" 1
+agent --lanes api/m1 > /dev/null
+check "9d other lanes send none" "$(sid 1)" none
+
 # 10. Two agents at once in one repo, each on its own file.
 reset_repo
 script '[{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"}},{"tool":"done","args":{"summary":"ok"}},{"tool":"write","args":{"path":"g.md","content":"second"}},{"tool":"done","args":{"summary":"ok"}}]'

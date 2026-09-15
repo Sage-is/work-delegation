@@ -39,6 +39,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import uuid
 
 # prefix -> (base url, env var holding the key, entry in opencode's auth.json)
 PROVIDERS = {
@@ -236,12 +237,14 @@ def user_agent(prefix: str) -> str:
 
 
 def post_chat(base: str, key: str | None, body: dict, timeout: float,
-              prefix: str = "") -> dict:
+              prefix: str = "", session: str | None = None) -> dict:
     data = json.dumps(body).encode("utf-8")
     headers = {"Content-Type": "application/json", "Accept": "application/json",
                "User-Agent": user_agent(prefix)}
     if key:
         headers["Authorization"] = f"Bearer {key}"
+    if session:
+        headers["x-opencode-session"] = session
     req = urllib.request.Request(f"{base}/chat/completions", data=data, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -289,6 +292,13 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
     if key is None and PROVIDERS[prefix][1] and prefix != "zen":
         raise LaneError("error", f"no key ({PROVIDERS[prefix][1]} unset, auth.json has none)")
 
+    # Go answers 400 MissingSessionID to any request without a stable
+    # x-opencode-session per conversation (every model, 2026-09-07 onward;
+    # docs/go "Where can I use it"). One lane is one conversation, so one id.
+    # Not on zen/: the free tier there is OpenCode-only, and runs through the
+    # opencode CLI as an opencode/ lane instead.
+    session = f"delegate-{uuid.uuid4().hex}" if prefix == "go" else None
+
     user = brief
     if named:
         user += "\n\nTarget files (relative to the project root): " + ", ".join(named)
@@ -304,7 +314,8 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
         if prefix == "openrouter":
             body["usage"] = {"include": True}
         try:
-            resp = post_chat(base, key, body, min(args.request_timeout, remaining), prefix)
+            resp = post_chat(base, key, body, min(args.request_timeout, remaining), prefix,
+                             session)
         except LaneError as exc:
             if exc.kind == "timeout" and stats["committed"] and not stats.get("retried"):
                 stats["retried"] = True

@@ -3,7 +3,8 @@
 # Usage: delegate-edit <dir> <lanes> "<brief>" [files...]
 #        delegate-edit --doctor            (verify PATH, skill, hook, keys, ledger, lock)
 #        delegate-edit --unlock [--force]  (report the opencode-path lock; release when stale)
-# Lanes: one model, or a comma list tried in order (direct lanes only):
+# Lanes: one model, or a comma list of direct lanes tried in order, which may
+# end in one opencode/ lane run when every direct lane fails before editing:
 #   zen/ go/ nvidia/ openrouter/ ollama/ api/  → direct API through delegate-agent
 #   claude/<model>                             → claude -p with Read, Edit, Write only
 #   anything else (opencode/…, opencode-go/…)  → opencode run, the original path
@@ -218,18 +219,23 @@ if [ ! -d "$dir" ]; then
   exit 2
 fi
 
-# Backend by the first lane's prefix. Comma lists are for direct lanes only:
-# the other two backends own their own loop and cannot hop.
-case "${model%%/*}" in
-  zen|go|nvidia|openrouter|ollama|api) backend=api ;;
-  claude) backend=claude ;;
-  *) backend=opencode ;;
-esac
-if [ "$backend" != api ] && [ "${model#*,}" != "$model" ]; then
-  echo "delegate-edit: comma-separated lanes are for direct prefixes (zen/ go/ nvidia/ openrouter/ ollama/ api/)" >&2
+# Backend by the first lane's prefix. Comma lists are direct lanes: the other
+# two backends own their own loop and cannot hop. One exception: the last lane
+# may be opencode/…. Zen's free tier answers only inside OpenCode (2026-09-13),
+# so a free-tier user's go/ lanes skip for want of a key and the CLI runs it.
+is_direct() { case "${1%%/*}" in zen|go|nvidia|openrouter|ollama|api) return 0 ;; esac; return 1; }
+direct=$model; oc_model=""
+if is_direct "$model"; then
+  backend=api
+  if ! is_direct "${model##*,}"; then direct=${model%,*}; oc_model=${model##*,}; fi
+else
+  case "${model%%/*}" in claude) backend=claude ;; *) backend=opencode; oc_model=$model ;; esac
+fi
+if { [ "$backend" != api ] && [ "${model#*,}" != "$model" ]; } || [ "${oc_model%%/*}" = claude ]; then
+  echo "delegate-edit: a comma list is direct lanes (zen/ go/ nvidia/ openrouter/ ollama/ api/), optionally ending in one opencode/ lane" >&2
   exit 2
 fi
-if [ "$backend" != api ] && [ -z "$TIMEOUT_BIN" ]; then
+if { [ "$backend" != api ] || [ -n "$oc_model" ]; } && [ -z "$TIMEOUT_BIN" ]; then
   echo "delegate-edit: no GNU timeout on PATH — install coreutils (brew install coreutils)" >&2
   exit 2
 fi
@@ -255,6 +261,7 @@ diff_file=""
 session=""; retries=0; diff_stat=""; lock_held=""; paths=(); seeded=(); created=""
 untracked_before=""; out_file=""; lock_reclaimed=""; wedged=""
 lane=""; lanes_skipped=""; turns=""; tokens_in=""; tokens_out=""; cost_usd=""; touched=()
+fell_back=""
 brief_file=""
 log_event() {
   [ "$DELEGATE_LOG" = "0" ] && return 0
@@ -316,6 +323,7 @@ cleanup() {
   duration=$(( $(date +%s) - start_ts ))
   ceiling=$DELEGATE_LOCK_MAX_AGE
   [ "${backend:-opencode}" != opencode ] && ceiling=$(( DELEGATE_BUDGET + 60 ))
+  [ -n "$fell_back" ] && ceiling=$(( DELEGATE_BUDGET + 60 + DELEGATE_LOCK_MAX_AGE ))
   if [ "$duration" -gt "$ceiling" ] && { [ -z "$session" ] || [ -z "$diff_stat" ]; }; then
     echo "delegate-edit: WEDGED — ${duration}s against a ${ceiling}s ceiling, with no session or no diff (body exited $rc)" >&2
     wedged=$rc; rc=9
@@ -456,9 +464,9 @@ run_opencode() {
   # provider first and fail fast. An empty listing means the check itself
   # failed (offline, unknown provider) — never block a run on that.
   local avail
-  avail=$("$TIMEOUT_BIN" 15 opencode models "${model%%/*}" 2>/dev/null || true)
-  if [ -n "$avail" ] && ! printf '%s\n' "$avail" | grep -qx "$model"; then
-    echo "delegate-edit: no such model: $model — ${model%%/*} offers:" >&2
+  avail=$("$TIMEOUT_BIN" 15 opencode models "${oc_model%%/*}" 2>/dev/null || true)
+  if [ -n "$avail" ] && ! printf '%s\n' "$avail" | grep -qx "$oc_model"; then
+    echo "delegate-edit: no such model: $oc_model — ${oc_model%%/*} offers:" >&2
     printf '%s\n' "$avail" | sed 's/^/  /' >&2
     return 2
   fi
@@ -509,7 +517,7 @@ run_opencode() {
   run_once() {
     "$TIMEOUT_BIN" -k "$DELEGATE_KILL_AFTER" "$DELEGATE_TIMEOUT" opencode run "$preamble
 
-$instruction" --dir "$dir" -m "$model" --auto --format json --pure ${file_args[@]+"${file_args[@]}"} > "$out_file" 2>&1
+$instruction" --dir "$dir" -m "$oc_model" --auto --format json --pure ${file_args[@]+"${file_args[@]}"} > "$out_file" 2>&1
   }
   local rc=0 out
   run_once || rc=$?
@@ -519,7 +527,7 @@ $instruction" --dir "$dir" -m "$model" --auto --format json --pure ${file_args[@
     retries=1
     rc=0; run_once || rc=$?
     if is_capped "$rc"; then
-      echo "delegate-edit: gateway stall on $model (2 attempts); pick another lane or edit inline" >&2
+      echo "delegate-edit: gateway stall on $oc_model (2 attempts); pick another lane or edit inline" >&2
       return 6
     fi
   fi
@@ -541,7 +549,7 @@ run_api() {
   local agent_files=() rc=0
   for p in ${paths[@]+"${paths[@]}"}; do agent_files+=(--file "$p"); done
   out_file=$(mktemp "${TMPDIR:-/tmp}/delegate-edit-out.XXXXXX")
-  python3 "$AGENT" --dir "$dir" --lanes "$model" --brief-file "$brief_file" \
+  python3 "$AGENT" --dir "$dir" --lanes "$direct" --brief-file "$brief_file" \
     ${agent_files[@]+"${agent_files[@]}"} --budget "$DELEGATE_BUDGET" \
     --max-turns "$DELEGATE_MAX_TURNS" --request-timeout "$DELEGATE_REQUEST_TIMEOUT" > "$out_file" || rc=$?
   # The agent's last stdout line is its JSON summary; everything else was stderr.
@@ -621,7 +629,15 @@ echo "delegate-edit: $backend  $model  brief ${#instruction} chars  files ${#pat
 rc=0
 case $backend in
   opencode) run_opencode || rc=$? ;;
-  api)      run_api      || rc=$? ;;
+  api)      run_api      || rc=$?
+            # No direct lane was usable and none began editing: the trailing
+            # opencode/ lane gets the brief.
+            if [ "$rc" -eq 2 ] && [ -n "$oc_model" ] && [ -z "$lane" ]; then
+              echo "delegate-edit: no direct lane usable; handing the brief to $oc_model through the opencode CLI" >&2
+              rm -f "$out_file"; backend=opencode; fell_back=1; rc=0
+              run_opencode || rc=$?
+              lane=$oc_model
+            fi ;;
   claude)   run_claude   || rc=$? ;;
 esac
 
