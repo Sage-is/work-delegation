@@ -12,7 +12,8 @@ ok()  { pass=$((pass + 1)); echo "PASS  $1"; }
 bad() { fail=$((fail + 1)); echo "FAIL  $1"; }
 check() { [ "$2" = "$3" ] && ok "$1 ($2)" || bad "$1 (want $3, got $2)"; }
 
-big=$(python3 -c 'print("x" * 2500)')
+big=$(python3 -c 'print("x" * 4500)')
+mid=$(python3 -c 'print("x" * 3000)')
 payload() { python3 -c "import json,sys; print(json.dumps({'tool_name':'Write','tool_input':{'file_path':sys.argv[1],'content':sys.argv[2]}}))" "$1" "$2"; }
 decision() { printf '%s' "$1" | DELEGATE_ENFORCE=1 DELEGATE_LOG=$T/log.jsonl bash "$HOOK" | python3 -c "import json,sys; d=sys.stdin.read().strip(); print(json.loads(d)['hookSpecificOutput']['permissionDecision'] if d else 'pass')"; }
 row() { python3 -c "import json,time,sys; print(json.dumps({'ts':time.strftime('%Y-%m-%dT%H:%M:%S%z', time.localtime(time.time()-int(sys.argv[1]))),'model':'go/x','rc':int(sys.argv[2])}))" "$1" "$2"; }
@@ -20,6 +21,10 @@ row() { python3 -c "import json,time,sys; print(json.dumps({'ts':time.strftime('
 : > "$T/log.jsonl"
 check "1 big generation denied" "$(decision "$(payload /p/doc.md "$big")")" deny
 check "2 small edit passes" "$(decision "$(payload /p/doc.md short)")" pass
+check "2b under 4000 chars passes" "$(decision "$(payload /p/doc.md "$mid")")" pass
+check "2c DELEGATE_MIN_CHARS lowers it" "$(printf '%s' "$(payload /p/doc.md "$mid")" | DELEGATE_ENFORCE=1 DELEGATE_MIN_CHARS=2000 DELEGATE_LOG=$T/log.jsonl bash "$HOOK" | grep -c deny)" 1
+check "3b tests dir exempt" "$(decision "$(payload /p/tests/stub.py "$big")")" pass
+check "3c test_ file exempt" "$(decision "$(payload /p/cli/test_thing.py "$big")")" pass
 check "3 plan path exempt" "$(decision "$(payload /u/.claude/plans/x.md "$big")")" pass
 check "4b nested typist passes" "$(printf '%s' "$(payload /p/doc.md "$big")" | DELEGATE_ENFORCE=1 DELEGATE_NESTED=1 bash "$HOOK" | wc -c | tr -d ' ')" 0
 check "4 inert without DELEGATE_ENFORCE" "$(printf '%s' "$(payload /p/doc.md "$big")" | DELEGATE_ENFORCE=0 bash "$HOOK" | wc -c | tr -d ' ')" 0

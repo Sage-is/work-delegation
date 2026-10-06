@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""delegate-cost — where Claude Code's tokens go, and what delegation saves.
+
+Usage: delegate-cost [--since YYYY-MM-DD] [--projects DIR] [--ledger FILE] [--top N]
+
+Reads the Claude Code transcripts (default ~/.claude/projects/**/*.jsonl, subagents
+included) and the delegate ledger (default ~/.local/state/delegate/log.jsonl).
+
+Cost units weight tokens by price: fresh input 1, cache write 1.25, cache read 0.1,
+output 5. Transcripts record exact usage per API call but not what made it up, so the
+breakdown estimates each item as chars / 3.5 tokens, charged 1.25 once when it enters
+the context and 0.1 on every later call until the next compaction.
+
+A delegation saves the orchestrator the output tokens of what the delegate wrote,
+and costs it the brief (output) plus reading the diff back (input).
+"""
+from __future__ import annotations
+
+import argparse
+import collections
+import json
+import os
+import statistics
+from pathlib import Path
+
+CPT = 3.5            # chars per token, mixed code and prose
+WRITE, READ, OUT = 1.25, 0.1, 5.0
+BIG_READ = 350       # Portal's default for a read worth delegating, in lines
+SUMMARY_TOKENS = 700  # what a delegated read returns, brief included
+EDITS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
+
+
+def load(path: Path) -> list[dict]:
+    rows = []
+    for raw in path.read_text(errors="replace").splitlines():
+        try:
+            rows.append(json.loads(raw))
+        except ValueError:
+            pass
+    return rows
+
+
+def result_chars(block: dict) -> int:
+    body = block.get("content")
+    if isinstance(body, list):
+        return sum(len(b.get("text", "")) for b in body if isinstance(b, dict))
+    return len(body or "")
+
+
+def tool_key(name: str | None) -> str:
+    name = name or "?"
+    return "mcp:" + name.split("__")[1] if name.startswith("mcp__") else name
+
+
+def scan(projects: Path, since: str):
+    tot = collections.Counter()
+    units = collections.Counter()       # cost units by source
+    prefixes = {"main": [], "subagent": []}
+    contexts = {"main": [], "subagent": []}
+    reads, n_files = [], 0
+    for path in projects.rglob("*.jsonl"):
+        events = load(path)
+        stamps = [e.get("timestamp", "") for e in events if e.get("timestamp")]
+        if not stamps or max(stamps) < since:
+            continue
+        n_files += 1
+        kind = "subagent" if "/subagents/" in str(path) else "main"
+        seen, idx, uses, items, bounds, edits, first = set(), 0, {}, [], [], [], None
+        file_reads = []
+        for e in events:
+            if e.get("type") == "system" and e.get("subtype") == "compact_boundary":
+                bounds.append(idx)
+            m = e.get("message") or {}
+            if e.get("type") == "assistant":
+                if m.get("id") and m["id"] not in seen:
+                    seen.add(m["id"])
+                    idx += 1
+                    u = m.get("usage") or {}
+                    fresh, cw, cr = (u.get("input_tokens") or 0, u.get("cache_creation_input_tokens") or 0,
+                                     u.get("cache_read_input_tokens") or 0)
+                    tot["calls_" + kind] += 1
+                    tot["fresh"] += fresh
+                    tot["cache_write"] += cw
+                    tot["cache_read"] += cr
+                    tot["output"] += u.get("output_tokens") or 0
+                    contexts[kind].append(fresh + cw + cr)
+                    first = first if first is not None else fresh + cw + cr
+                for b in m.get("content") or []:
+                    if not isinstance(b, dict):
+                        continue
+                    if b.get("type") == "tool_use":
+                        uses[b.get("id")] = (b.get("name"), b.get("input") or {})
+                        items.append(("call: " + tool_key(b.get("name")), len(json.dumps(b.get("input") or {})), idx))
+                        if b.get("name") in EDITS:
+                            edits.append((idx, (b.get("input") or {}).get("file_path")))
+                    elif b.get("type") == "text":
+                        items.append(("assistant text", len(b.get("text", "")), idx))
+            att = e.get("attachment")
+            if isinstance(att, dict):
+                items.append(("attachment: " + str(att.get("type")), len(json.dumps(att)), idx))
+            if e.get("type") == "user":
+                content = m.get("content")
+                if isinstance(content, str):
+                    items.append(("user text", len(content), idx))
+                    continue
+                for b in content or []:
+                    if not isinstance(b, dict):
+                        continue
+                    if b.get("type") == "text":
+                        items.append(("user text", len(b.get("text", "")), idx))
+                    if b.get("type") != "tool_result":
+                        continue
+                    name, inp = uses.get(b.get("tool_use_id"), (None, {}))
+                    chars = result_chars(b)
+                    items.append(("result: " + tool_key(name), chars, idx))
+                    if name == "Read":
+                        f = (e.get("toolUseResult") or {}).get("file") if isinstance(e.get("toolUseResult"), dict) else None
+                        # Subagent transcripts carry no numLines; count the result's own lines.
+                        body = b.get("content")
+                        text = body if isinstance(body, str) else "".join(
+                            x.get("text", "") for x in body or [] if isinstance(x, dict))
+                        lines = (f or {}).get("numLines") or text.count("\n")
+                        file_reads.append({"tokens": chars / CPT, "lines": lines, "at": idx, "kind": kind,
+                                           "targeted": bool(inp.get("offset") or inp.get("limit")),
+                                           "path": inp.get("file_path")})
+        if first is None:
+            continue
+        prefixes[kind].append(first)
+        units["prefix (system, tools, first call)"] += first * WRITE + first * READ * max(idx - 1, 0)
+        for key, chars, at in items:
+            stop = min([b for b in bounds if b > at] or [idx])
+            units[key] += chars / CPT * (WRITE + READ * max(stop - at, 0))
+        for r in file_reads:
+            r["end"] = min([b for b in bounds if b > r["at"]] or [idx])
+            r["edited_after"] = any(i >= r["at"] and p == r["path"] for i, p in edits)
+        reads += file_reads
+    return n_files, tot, units, prefixes, contexts, reads
+
+
+def median(xs):
+    return statistics.median(xs) if xs else 0
+
+
+def read_units(r: dict) -> float:
+    return r["tokens"] * (WRITE + READ * max(r["end"] - r["at"], 0))
+
+
+def report_transcripts(args) -> None:
+    n, tot, units, prefixes, contexts, reads = scan(Path(args.projects), args.since)
+    total = tot["fresh"] + WRITE * tot["cache_write"] + READ * tot["cache_read"]
+    if not total:
+        print(f"No transcripts with API calls since {args.since} under {args.projects}.")
+        return
+    print(f"== Claude Code since {args.since}: {n} transcripts, "
+          f"{tot['calls_main']} main and {tot['calls_subagent']} subagent API calls")
+    print(f"input cost units {total / 1e6:.1f}M: fresh {tot['fresh'] / 1e6:.2f}M, "
+          f"cache write {WRITE * tot['cache_write'] / 1e6:.1f}M, cache read {READ * tot['cache_read'] / 1e6:.1f}M "
+          f"({100 * READ * tot['cache_read'] / total:.0f}% of input)")
+    print(f"output cost units {OUT * tot['output'] / 1e6:.1f}M ({tot['output'] / 1e6:.2f}M tokens)")
+    print(f"context per call: main median {median(contexts['main']):,.0f} tokens, "
+          f"subagent median {median(contexts['subagent']):,.0f}; "
+          f"prefix at the first call: main {median(prefixes['main']):,.0f}, subagent {median(prefixes['subagent']):,.0f}")
+    print(f"\n-- where input cost goes (estimated; the rest is growth the transcript does not itemise)")
+    for key, u in units.most_common(args.top):
+        print(f"  {100 * u / total:5.1f}%  {u / 1e6:7.1f}M  {key}")
+    big = [r for r in reads if not r["targeted"] and r["lines"] > BIG_READ]
+    cand = [r for r in big if not r["edited_after"]]
+    saved = sum((r["tokens"] - SUMMARY_TOKENS) * (WRITE + READ * (r["end"] - r["at"]))
+                for r in cand if r["tokens"] > SUMMARY_TOKENS)
+    print(f"\n-- reads: {len(reads)} Read calls, {sum(read_units(r) for r in reads) / total:.1%} of input cost")
+    print(f"  whole-file reads over {BIG_READ} lines: {len(big)} "
+          f"({sum(1 for r in big if r['kind'] == 'subagent')} in subagents, "
+          f"{sum(1 for r in big if r['edited_after'])} followed by an edit), "
+          f"{sum(read_units(r) for r in big) / total:.1%} of input cost")
+    print(f"  delegating those not followed by an edit, ~{SUMMARY_TOKENS} tokens back each: "
+          f"saves {saved / total:.1%} of input cost over {len(cand)} delegations")
+
+
+def report_ledger(args) -> None:
+    path = Path(args.ledger)
+    if not path.exists():
+        print(f"\nNo delegate ledger at {path}.")
+        return
+    rows = [r for r in load(path) if (r.get("ts") or "") >= args.since]
+    real = [r for r in rows if "delegate-matrix" not in (r.get("dir") or "")]
+    print(f"\n== delegate ledger since {args.since}: {len(real)} runs "
+          f"({len(rows) - len(real)} matrix runs left out)")
+    rc = collections.Counter(r.get("rc") for r in real)
+    print("  exit codes: " + ", ".join(f"rc {k}: {v}" for k, v in sorted(rc.items(), key=lambda kv: str(kv[0]))))
+    sized = []
+    for r in real:
+        diff = r.get("diff_file")
+        if r.get("rc") != 0 or not diff:
+            continue
+        p = Path(diff) if os.path.isabs(diff) else path.parent / "diffs" / diff
+        if not p.exists():
+            continue
+        lines = p.read_text(errors="replace").splitlines()
+        added = sum(len(l) - 1 for l in lines if l.startswith("+") and not l.startswith("+++"))
+        sized.append((added, r.get("brief_chars") or 0, sum(len(l) for l in lines), r.get("duration_s") or 0))
+    if not sized:
+        return
+    print("  saving to the orchestrator by output size (typed: output x5; delegated: brief x5 + diff read back):")
+    for lo, hi in ((0, 2000), (2000, 4000), (4000, 8000), (8000, None)):
+        b = [s for s in sized if s[0] >= lo and (hi is None or s[0] < hi)]
+        if not b:
+            continue
+        typed = sum(s[0] / CPT * OUT for s in b)
+        cost = sum(s[1] / CPT * OUT + s[2] / CPT * WRITE for s in b)
+        label = f"{lo}-{hi}" if hi else f"{lo}+"
+        print(f"    {label:>10} chars  {len(b):3} runs  {100 * (1 - cost / typed):+5.0f}%  "
+              f"median wait {median([s[3] for s in b]):.0f}s")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Where Claude Code's tokens go, and what delegation saves.")
+    ap.add_argument("--since", default="2026-09-05")
+    ap.add_argument("--projects", default=os.path.expanduser("~/.claude/projects"))
+    ap.add_argument("--ledger", default=os.environ.get("DELEGATE_LOG")
+                    or os.path.expanduser("~/.local/state/delegate/log.jsonl"))
+    ap.add_argument("--top", type=int, default=15)
+    args = ap.parse_args()
+    report_transcripts(args)
+    report_ledger(args)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

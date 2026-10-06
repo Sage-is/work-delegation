@@ -11,6 +11,7 @@
 - [ ] **Non-edit verbs.** Editing is not the only thing worth delegating (Alexander, 2026-08-21).
   - [ ] `delegate-review` (read a diff, return findings), `delegate-ask` (answer a question about the repo), `delegate-run` (scoped command plus a summary).
   - [ ] Share the provider table, lane fallback, and ledger from `delegate-agent`.
+  - [x] `delegate-ask` measured first (2026-10-05, Portal's bulk-read pattern): whole-file reads over 350 lines are 0.6% of input cost, delegation would save 0.4%. Not built; re-run `make cost` if the work shifts to big codebases.
 
 - [ ] **Phase 4, only if the matrix asks for it.** `ollama/qwen3.5:9b` scored 2/4 on 2026-09-04 with one 90s timeout.
   - [ ] A no-tools `direct` mode (named files inlined, model returns full contents) for small models.
@@ -19,18 +20,44 @@
 
 - [ ] **Opencode path is legacy.** It keeps the lock, the two capped attempts, and the silent 120s. Retire it once the direct lanes have a month of ledger behind them.
 
+- [ ] **Token levers outside delegation.** `delegate-cost`, 2026-10-05: cache re-reads 66% of input cost; median main-session call 297k tokens.
+  - [ ] Prefix 13.8% plus skill listing, hook output and reminders about 15%: trim what loads every session.
+  - [ ] Bash 15.8%: outputs 10.3%, calls 5.5%.
+  - [ ] Plans 6.1%: ExitPlanMode 4.0%, re-injected plan files 2.1%; shorter plans cost less every turn.
+  - [ ] Session length: fresh sessions or earlier compaction for long-running work.
+
+- [ ] **Claude Code plugin.** A marketplace in this repo (`claude plugin marketplace add Sage-is/work-delegation`) bundling the skill, hook and scripts; `make install` stays for Codex, opencode and Pi. `claude plugin eval` could score the skill against a no-plugin baseline.
+
+- [ ] **Messages protocol, only if needed.** Go's `@ai-sdk/anthropic` models (MiniMax, Qwen) still answer chat (2026-10-05). Add Anthropic Messages to `delegate-agent` the day one answers `ModelProtocolUnsupported`.
+
 ## Housekeeping
+
+- [ ] **Watch `go/gpt-6-luna` in real use.** It leads the default list on matrix evidence alone (6/6, 2026-10-05). After two weeks: `make cost`, and rc and turns per lane in the ledger.
 
 - [ ] **Push `develop` and reconcile with `origin/develop`.** Ahead 2, behind 1 as of 2026-08-21.
 - [ ] **Add `OPENROUTER_API_KEY`** if the OpenRouter lane is wanted; the doctor lists it as unkeyed.
 - [ ] **`make doctor` fails on five historical wedge rows** (2026-08-19 and 2026-08-21) until 50 newer rows push them out of the window.
 - [ ] **Validate the Zen API tier.** `zen/deepseek-v4-flash,zen/minimax-m3,opencode/big-pickle` is documented but untested; this Mac has no Zen billing (401).
-- [ ] **Watch the DeepSeek V4.1 Flash promotion.** Its $60 Go limit is "for a limited time"; at $15 it may lose first place to `go/minimax-m3`.
-- [ ] **zen/ `opencode/` User-Agent is inert.** Zen's free tier refuses non-OpenCode clients whatever the UA (2026-09-13). Keep or drop: Alexander's call.
+- [ ] **Watch the DeepSeek V4.1 Flash promotion.** Its $60 Go limit is "for a limited time". It is the second lane since 2026-10-05.
 
 ---
 
 ## Previous Weeks
+
+### 2026-10-05
+
+- [x] **Measured before deciding** (Spotify's Portal post). `delegate-cost` reads transcripts and the ledger; read delegation would save 0.4%, so it was not built. RESULTS.md field notes.
+- [x] **Hook line 2000 to 4000 chars**, `DELEGATE_MIN_CHARS`, test files exempt: delegating under 2000 chars of output cost the orchestrator 93% more than typing.
+- [x] **Streaming, a silence limit instead of a whole-answer timeout.** The four stalls were long answers; agent case 11 fails on the old agent.
+- [x] **Protocol and price from opencode's catalogue.** Responses API for `@ai-sdk/openai` models; `go/gpt-6-luna` 0/4 to 6/6; `cost_usd` filled at list price with `cost_source`.
+- [x] **Trace and preload.** One ledger line per tool call; named files go with the brief (deepseek 3-5 turns to 2-3).
+- [x] **Matrix t5 and t6** from the failure shapes; `TASKS=` filter; `make unmeasured`. Default lanes now `go/gpt-6-luna,go/deepseek-v4.1-flash,opencode/big-pickle`.
+- [x] **Tests:** agent 60, wrapper 22, hook 13, cost 5, lock 17.
+
+### 2026-09-15
+
+- [x] **zen/ is paid-only.** The `opencode/` User-Agent and the keyless-zen path are gone (Alexander, 2026-09-14); keyless free is `opencode/big-pickle` through the CLI, or `ollama/` offline. The doctor checks the free lane.
+- [x] **Kipple sweep.** SKILL.md, `docs/how-it-works.md`, README and `marketing/` no longer carry the 2026-08-15 numbers, "direct lanes only", or keyless zen/ claims.
 
 ### 2026-09-13
 

@@ -14,8 +14,8 @@
 #      DELEGATE_BUDGET=<s> wall ceiling for a direct or claude run (default 480;
 #        a whole-document rewrite on a slow lane needs the room, measured 2026-09-04).
 #      DELEGATE_MAX_TURNS=<n> tool turns for a direct or claude run (default 20).
-#      DELEGATE_REQUEST_TIMEOUT=<s> per-request cap on direct lanes (default 120;
-#        a whole-document reply from a slow lane can need more).
+#      DELEGATE_REQUEST_TIMEOUT=<s> longest silence on a direct lane (default 120).
+#        Answers stream, so a long reply that keeps arriving never trips it.
 #      DELEGATE_MAX_USD=<n> hard spend cap for the claude backend (default 0.50).
 #      DELEGATE_NO_INDEX_ADD=1 skips `git add -N` on newly created files.
 #      DELEGATE_DIFFS=<dir> where each run's patch is kept for the admin
@@ -98,6 +98,13 @@ if [ "${1:-}" = "--doctor" ]; then
   pass() { echo "PASS  $1"; }
   fail() { echo "FAIL  $1"; status=1; }
   command -v opencode >/dev/null 2>&1 && pass "opencode on PATH" || echo "note  opencode not on PATH — opencode/ lanes unavailable"
+  # Keyless free: Zen's free tier answers only inside OpenCode, so it runs as
+  # the opencode/big-pickle lane through the CLI. No key, no login.
+  if [ -n "$TIMEOUT_BIN" ] && "$TIMEOUT_BIN" 15 opencode models opencode 2>/dev/null | grep -qx opencode/big-pickle; then
+    pass "free tier: opencode lists opencode/big-pickle (keyless)"
+  else
+    echo "note  free tier: opencode/big-pickle not listed — the keyless opencode/ lane is unavailable"
+  fi
   command -v claude >/dev/null 2>&1 && pass "claude on PATH" || echo "note  claude not on PATH — claude/ lanes unavailable"
   [ -n "$TIMEOUT_BIN" ] && pass "GNU timeout on PATH ($TIMEOUT_BIN)" \
     || fail "GNU timeout on PATH (brew install coreutils)"
@@ -261,6 +268,7 @@ diff_file=""
 session=""; retries=0; diff_stat=""; lock_held=""; paths=(); seeded=(); created=""
 untracked_before=""; out_file=""; lock_reclaimed=""; wedged=""
 lane=""; lanes_skipped=""; turns=""; tokens_in=""; tokens_out=""; cost_usd=""; touched=()
+protocol=""; cost_source=""; trace=""
 fell_back=""
 brief_file=""
 log_event() {
@@ -274,6 +282,7 @@ log_event() {
   DELEGATE_L_WEDGED=$wedged DELEGATE_L_RECLAIMED=$lock_reclaimed \
   DELEGATE_L_BACKEND=$backend DELEGATE_L_LANE=$lane DELEGATE_L_SKIPPED=$lanes_skipped \
   DELEGATE_L_TURNS=$turns DELEGATE_L_TIN=$tokens_in DELEGATE_L_TOUT=$tokens_out DELEGATE_L_COST=$cost_usd \
+  DELEGATE_L_COST_SOURCE=$cost_source DELEGATE_L_PROTOCOL=$protocol DELEGATE_L_TRACE=$trace \
   DELEGATE_L_RUN_ID=$run_id DELEGATE_L_DIFF_FILE=$diff_file \
   python3 - >> "$DELEGATE_LOG" 2>/dev/null <<'PY' || true
 import json, os, time
@@ -300,6 +309,11 @@ print(json.dumps({
     "tokens_in": num("DELEGATE_L_TIN", int),
     "tokens_out": num("DELEGATE_L_TOUT", int),
     "cost_usd": num("DELEGATE_L_COST", float),
+    # "provider" when the gateway billed it, "catalogue" for a list-price estimate.
+    "cost_source": e["DELEGATE_L_COST_SOURCE"] or None,
+    "protocol": e["DELEGATE_L_PROTOCOL"] or None,
+    # One line per tool call: turn, tool, path, ok or the error the model saw.
+    "trace": [t for t in e["DELEGATE_L_TRACE"].splitlines() if t],
     "duration_s": int(e["DELEGATE_L_DURATION"]),
     "diff_stat": e["DELEGATE_L_DIFF_STAT"] or None,
     "diff_file": e["DELEGATE_L_DIFF_FILE"] or None,
@@ -568,6 +582,9 @@ print("turns=" + q(d.get("turns")))
 print("tokens_in=" + q(d.get("tokens_in")))
 print("tokens_out=" + q(d.get("tokens_out")))
 print("cost_usd=" + q(d.get("cost_usd")))
+print("cost_source=" + q(d.get("cost_source")))
+print("protocol=" + q(d.get("protocol")))
+print("trace=" + q("\n".join(d.get("trace") or [])))
 print("session=" + q(d.get("session")))
 print("touched=(" + " ".join(q(t) for t in (d.get("touched") or [])) + ")")
 ')"
@@ -612,6 +629,7 @@ print("turns=" + q(d.get("num_turns")))
 print("tokens_in=" + q(u.get("input_tokens")))
 print("tokens_out=" + q(u.get("output_tokens")))
 print("cost_usd=" + q(d.get("total_cost_usd")))
+print("cost_source=" + q("provider" if d.get("total_cost_usd") is not None else None))
 print("claude_error=" + q("1" if d.get("is_error") or d.get("subtype") not in (None, "success") else ""))
 print("claude_result=" + q((d.get("result") or "")[:300]))
 PY

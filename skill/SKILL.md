@@ -5,21 +5,24 @@ description: Delegate a file edit to a cheaper model via the delegate-edit wrapp
 
 # delegate-edit: hand file edits to a cheaper model
 
-STATUS: MEASURED 2026-09-04. The matrix in `results/matrix-2026-09-04.md` ran eight lanes across four tasks. Routing below comes from that run. Install with `make install`.
+STATUS: MEASURED 2026-10-05. Three matrix runs in `results/matrix-2026-10-05*.md` scored fourteen lanes across six tasks, and `delegate-cost` measured the ledger and the transcripts. Routing and the 4000-char line below come from them. Install with `make install`.
 
 ## Kill switch
 
 `DELEGATE=0` disables everything: the wrapper exits 3, and this skill must not delegate. Edit directly instead. The user saying "/delegate-edit off" means: set `DELEGATE=0` for the session's Bash calls and stop delegating.
 
-The enforcement hook has its own, independent switch: `DELEGATE_ENFORCE=1` arms `delegate-hook.sh` (PreToolUse on Edit|Write), which denies 2000+ char direct generations to `.md`/`.py`/`.txt`/`.rst` and redirects them here. The hook allows a direct edit when the ledger's last row is a stall or wedge under 30 minutes old, so a flaky backend never traps the session. Never require `DELEGATE=0` to bypass the hook; the two must stay separable.
+The enforcement hook has its own, independent switch: `DELEGATE_ENFORCE=1` arms `delegate-hook.sh` (PreToolUse on Edit|Write), which denies 4000+ char direct generations to `.md`/`.py`/`.txt`/`.rst` and redirects them here. `DELEGATE_MIN_CHARS` moves the line. Below it, delegating costs the orchestrator more than typing: the ledger to 2026-10-05 shows -93% under 2000 chars of output, -23% at 2000-4000, +41% at 4000-8000. Test files (`tests/`, `test_*`, `*_test.py`) always pass: tests stay inline. The hook allows a direct edit when the ledger's last row is a stall or wedge under 30 minutes old, so a flaky backend never traps the session. Never require `DELEGATE=0` to bypass the hook; the two must stay separable.
 
 ## Ledger and doctor
 
 Every run (success or failure) appends one JSON line to
 `~/.local/state/delegate/log.jsonl`: timestamp, run_id, dir, model, backend,
 lane, lanes_skipped, files, created, the full instruction, exit code, session,
-retries, turns, tokens_in, tokens_out, cost_usd, duration, diff stat, and
-diff_file, the run's patch saved under `diffs/` beside the ledger (1 MB cap).
+retries, turns, tokens_in, tokens_out, cost_usd and cost_source ("provider"
+when billed, "catalogue" for a list-price estimate), protocol, trace (one
+line per tool call: turn, tool, path, ok or the error the model saw),
+duration, diff stat, and diff_file, the run's patch saved under `diffs/`
+beside the ledger (1 MB cap).
 `make admin` serves the ledger as a web page: search, filter, star, tag, note,
 the diff per run, re-run and revert commands, and stats per lane.
 `DELEGATE_LOG=<path>` moves it; `DELEGATE_LOG=0` disables it. Failure records
@@ -33,13 +36,21 @@ economy: the median brief size over the last 50 runs, how many exceeded 2000
 chars, and how many files were created. A rising median means delegation has
 drifted back into dictation.
 
+`delegate-cost` (or `make cost SINCE=YYYY-MM-DD`) reads the Claude Code
+transcripts and the ledger: where the orchestrator's input cost goes (prefix,
+tool results by tool, attachments, cache re-reads), what large file reads
+cost, and what delegation saved by output size. Measure with it before
+building a new delegation verb. `make unmeasured` lists catalogue models no
+matrix has scored yet.
+
 ## The wrapper
 
 ```bash
 delegate-edit <dir> <lanes> "<brief>" [files...]
 ```
 
-`<lanes>` is one model or a comma list tried in order (direct lanes only).
+`<lanes>` is one model, or a comma list of direct lanes tried in order that
+may end in one `opencode/` lane.
 The first lane's prefix picks the backend; see Backends and lanes.
 
 Location: `scripts/delegate-edit` beside this file; `make install` also puts it at
@@ -58,6 +69,9 @@ The wrapper, whatever the backend:
 Per-run knobs: `DELEGATE_BUDGET` caps wall time for a direct or claude run
 (default 480s; a whole-document rewrite on a slow lane needs the room).
 `DELEGATE_MAX_TURNS` caps tool turns on those paths (default 20).
+`DELEGATE_REQUEST_TIMEOUT` is the longest silence a direct lane may keep,
+before its first byte or between two (default 120s). Answers stream, so a
+long file that keeps arriving never trips it.
 `DELEGATE_MAX_USD` is the hard spend cap for the claude backend (default
 $0.50).
 
@@ -66,25 +80,32 @@ $0.50).
 The first lane's prefix picks the backend:
 
 - `zen/`, `go/`, `nvidia/`, `openrouter/`, `ollama/`, `api/`: direct API
-  through `delegate-agent`, a small Python typist that speaks one
-  OpenAI-compatible request shape to every provider. Keys resolve from each
+  through `delegate-agent`, a small Python typist. Each model gets the
+  protocol opencode's catalogue (`~/.cache/opencode/models.json`) names for
+  it: OpenAI's Responses API for `@ai-sdk/openai` models (GPT, Grok and Muse
+  on Go, which refuse chat with `ModelProtocolUnsupported`), chat completions
+  for the rest. Every request streams. The catalogue's list prices fill
+  `cost_usd` when the gateway reports none. The named files' contents go
+  with the brief, so the model starts editing. Keys resolve from each
   provider's env var, or from opencode's auth.json for `zen/`, `go/`, and
   `nvidia/`. `DELEGATE_API_KEY` plus `DELEGATE_BASE_URL` drive the generic
-  `api/` prefix. `ollama/` needs no key and works offline. `zen/` needs no
-  key for the free models (big-pickle and the `*-free` ids); a paid Zen model
-  without a key fails fast with "Missing API key".
+  `api/` prefix. `ollama/` needs no key and works offline. `zen/` is paid Zen
+  models only, key required; Zen's free models answer only inside OpenCode,
+  so they run as `opencode/` lanes.
 - `claude/<model>`: runs `claude -p` with only the Read, Edit, and Write
   tools, `--permission-mode acceptEdits`, and the `DELEGATE_MAX_USD` spend
   cap. No Bash.
 - Anything else (`opencode/…`, `opencode-go/…`): `opencode run`, the
   original path, with the permission policy and the machine-wide lock.
 
-Lane fallback: a comma list is tried in order, direct lanes only. A lane
+Lane fallback: a comma list of direct lanes is tried in order. A lane
 hands off to the next one on any failure before its first write or edit.
 After that first mutation the lane is committed: a later failure exits (1
 for an API error, 6 for a timeout) with the diff left in place for review.
-Comma lists on the other two backends are a usage error; they own their own
-loop and cannot hop.
+The list may end in one `opencode/` lane: when no direct lane was usable
+and none began editing, the wrapper runs that lane through the opencode CLI.
+Any other mix is a usage error; the claude and opencode backends own their
+own loop and cannot hop.
 
 ## The tool jail
 
@@ -146,55 +167,66 @@ machine-wide lock: a second opencode-path delegation waits up to
 
 ## When to delegate
 
-Delegate any long text when the spec is precise, commit messages included:
+Delegate long text when the spec is precise and the output will run to
+about 4000 characters or more. Below that, the brief plus reading the diff
+back costs more than typing it (ledger, 2026-10-05):
 
 - Long prose generation (new docs pages, guides, changelogs)
-- Commit messages
-- Prose rewrites with clear rules (house style passes)
-- Mechanical Python/code sweeps (docstrings, renames, import moves)
+- Prose rewrites with clear rules (house style passes) of a large file
+- Mechanical Python/code sweeps (docstrings, renames, import moves) across
+  enough code to clear the line
 
 Do NOT delegate:
 
 - Load-bearing logic (config, routers, migrations, tests, security code)
-- Small edits: verification costs more than typing them
+- Small edits and short texts, commit messages included: verification
+  costs more than typing them
 - Hardlinked files, or anything in bot-owned paths
 - When `DELEGATE=0`
 
-## Routing (matrix 2026-09-13)
+## Routing (matrix 2026-10-05)
 
 Default lanes, for every tier:
 
 ```bash
-delegate-edit <dir> go/deepseek-v4.1-flash,go/minimax-m3,opencode/big-pickle "<brief>" [files...]
+delegate-edit <dir> go/gpt-6-luna,go/deepseek-v4.1-flash,opencode/big-pickle "<brief>" [files...]
 ```
 
 Direct lanes run in order and stop at the first that answers. A list may end
 in one `opencode/` lane: when every direct lane fails before editing, the
 wrapper hands the brief to the opencode CLI. One list serves each tier:
 
-- Go plan: `go/deepseek-v4.1-flash` answers, 4/4 correct at 8-19s ($60
-  monthly limit while opencode's 4x promotion lasts). `go/minimax-m3` is
-  second, 4/4 at 8-15s. Go answers 400 `MissingSessionID` without a stable
-  `x-opencode-session` (2026-09-07 on); the agent sends one per lane.
-- Free: with no Go key the go/ lanes skip in milliseconds and
-  `opencode/big-pickle` runs through the CLI, 4/4 at 18-44s
-  (`opencode/mimo-v2.5-free` also 4/4, 28-62s). Zen's free tier tells any
-  other client "can only be used in OpenCode", so `zen/<free model>` lanes no
-  longer work. Free models may train on what you send.
+- Go plan: `go/gpt-6-luna` answers over the Responses API, 6/6 on
+  2026-10-05 (the four small tasks plus a 9-12 KB new file and an 11.6 KB
+  rewrite), 5-56s, $0.0002-0.0031 a task at list price. It has no real-use
+  record yet; the ledger will build one. `go/deepseek-v4.1-flash` is second:
+  41/42 in real use from 2026-09-16, 8/10 across today's three runs (on t5
+  it added a `## Contents` heading the brief ruled out). Go answers 400
+  `MissingSessionID` without a stable `x-opencode-session`; the agent sends
+  one per lane.
+- Free, keyless: with no Go key the go/ lanes skip in milliseconds and
+  `opencode/big-pickle` runs through the CLI with no key and no login, 4/4
+  at 18-44s on 2026-09-13. Zen's free tier answers only inside OpenCode,
+  which is why it is an `opencode/` lane. Free models may train on what you
+  send, so never hand them client files. Offline and keyless:
+  `ollama/<model>` before the tail, e.g.
+  `ollama/qwen3.5:9b,opencode/big-pickle` (2/4 on 2026-09-04, a fallback).
 - Zen API: opt in with your own list, e.g.
   `zen/deepseek-v4-flash,zen/minimax-m3,opencode/big-pickle`. Zen bills per
   request and auto-reloads $20, so no default spends it. Untested here: this
   machine has no Zen billing (401).
 
-Also measured 2026-09-13 (`results/matrix-2026-09-13.md`): `go/hy3` and
-`go/longcat-2.0` 4/4; `go/mimo-v2.5` 4/4 but 54-138s; `go/kimi-k2.7-code`,
-`go/qwen3.8-flash`, `go/deepseek-v4-flash` 3/4; `go/kimi-k3` 2/4 with a 120s
-timeout, and the costliest Go lane ($3 per 5 hours).
-`opencode/nemotron-3.5-lightning-free` stalled.
+Also measured 2026-10-05 (`results/matrix-2026-10-05*.md`, one run per cell):
+`go/glm-5.3-flash` 9/10 across the three runs, 7-18s on small tasks; `go/minimax-m3` 5/6; `go/hy4-preview` 6/6 but slow on long output
+(144s, 10 turns); `go/grok-4.7` 4/4 at 25-130x the cost of gpt-6-luna;
+`go/gpt-5.6-luna` 3/4; `go/mimo-v2.6-flash` 5/6, its t5 run looping on edits
+to the 20-turn cap. `go/deepseek-v4-pro`, `go/qwen3.8-max`, `go/mimo-v2.6-pro`
+4/4 on the small tasks only. Run `make unmeasured` for what no matrix has
+scored, then `make matrix LANES=... TASKS=...`.
 
-- `ollama/qwen3.5:9b`: offline, no key. 2/4 on 2026-09-04; a fallback.
-- `claude/sonnet`: 4/4 at about $0.10 a task. Use it when the cheap lanes
-  botch the diff.
+- `claude/haiku`: 5/6 at $0.03-0.07 a task. `claude/sonnet`: 5/6 at $0.10-0.14
+  a task (its t5 page came in 1400 chars short). Use them when the cheap
+  lanes botch the diff.
 
 Small logic fixes stay inline.
 
@@ -234,11 +266,12 @@ A brief holds three kinds of content, each with a rule:
    work delegation. Leave latitude; diff review catches taste cheaper than
    pre-specifying it.
 
-One number to watch: keep briefs under ~2000 chars. That is the enforce
-hook's threshold in reverse; content that big gets delegated, briefs that
-big get trimmed, split, or converted to pointers. Past 2000 the wrapper
-warns, but it never refuses: the ledger shows no relation between brief
-size and failure. One artifact per run; splitting isolates retries.
+Two numbers to watch. The brief stays under a third of the output it asks
+for: the ledger's median run spent a 1500-char brief on 3000 chars of
+output, and runs under that ratio lost tokens. And briefs stay under ~2000
+chars; past that the wrapper warns, but it never refuses: the ledger shows
+no relation between brief size and failure. One artifact per run;
+splitting isolates retries.
 
 ## The loop
 

@@ -3,6 +3,7 @@
 # real wrapper on a fresh copy of the fixtures, checked for correctness, and
 # tabulated with the ledger's timing, turns, tokens, and cost.
 #   tests/matrix/run.sh <lane>[,<lane>...] [out.md]
+#   TASKS=t5-long-gen,t6-big-rewrite runs only the tasks named.
 # Each lane runs on its own (no fallback list), so a failure is that lane's.
 # Rows append to out.md (default results/matrix-<date>.md) and print.
 set -uo pipefail
@@ -21,6 +22,7 @@ n=$(python3 -c "import json; print(len(json.load(open('$ROOT/tests/matrix/tasks.
 for lane in "${lanes[@]}"; do
   for i in $(seq 0 $((n - 1))); do
     id=$(python3 -c "import json; print(json.load(open('$ROOT/tests/matrix/tasks.json'))[$i]['id'])")
+    case ",${TASKS:-$id}," in *",$id,"*) ;; *) continue ;; esac
     file=$(python3 -c "import json; print(json.load(open('$ROOT/tests/matrix/tasks.json'))[$i]['file'])")
     brief=$(python3 -c "import json; print(json.load(open('$ROOT/tests/matrix/tasks.json'))[$i]['brief'])")
     repo=$T/$id-$(echo "$lane" | tr '/:' '__')

@@ -5,10 +5,22 @@ Usage:
   delegate-agent --dir <dir> --lanes <prefix/model>[,<prefix/model>...] --brief-file <path>
                  [--file <path>]... [--budget 480] [--max-turns 20] [--request-timeout 120]
 
-One OpenAI-compatible request shape for every provider. Lanes run in order; a lane
-is abandoned for the next one on any failure before the first mutating tool (write
-or edit) has run. After that the lane is committed: a later failure exits with the
-diff left in place for review.
+Lanes run in order; a lane is abandoned for the next one on any failure before the
+first mutating tool (write or edit) has run. After that the lane is committed: a later
+failure exits with the diff left in place for review.
+
+Every request streams. --request-timeout is the longest silence allowed, before the
+first byte or between two, not a cap on the whole answer: a model writing a long file
+keeps sending, and only a gateway that has gone quiet is a stall (2026-10-05: all four
+stalls in the ledger were long answers cut off by a whole-response timeout).
+
+Each model speaks the protocol opencode's catalogue names for it: OpenAI's Responses
+API for the models it serves through @ai-sdk/openai (GPT, Grok and Muse on Go), chat
+completions for everything else. The catalogue's list prices give a cost for lanes
+whose gateway reports none.
+
+Named files that exist go to the model with the brief, so it starts editing instead
+of spending turns reading them.
 
 Tools: read, write, edit (exactly one match), ls, done. No shell. Every path must
 resolve under --dir; hardlinked targets are refused, because editors replace inodes.
@@ -16,13 +28,16 @@ resolve under --dir; hardlinked targets are refused, because editors replace ino
 Exit: 0 ok, 1 API error after commit, 2 no lane usable, 6 timeout or budget,
       8 max turns. Whether anything changed is the wrapper's call (exit 5 there).
 
-Stdout: one JSON line at the end (lane, lanes_skipped, turns, tokens_in, tokens_out,
-cost_usd, session, touched). Stderr: one line per turn, one per lane hop.
+Stdout: one JSON line at the end (lane, lanes_skipped, protocol, turns, tokens_in,
+tokens_out, cost_usd, cost_source, session, touched, trace). Stderr: one line per
+turn, one per lane hop.
 
 Env: DELEGATE_BASE_URL overrides the base URL of every lane (tests use this).
      DELEGATE_API_KEY is the key for the generic api/ prefix.
      DELEGATE_AUTH_JSON points at opencode's auth.json (default
      ~/.local/share/opencode/auth.json), the fallback key source for zen/, go/, nvidia/.
+     DELEGATE_CATALOGUE points at opencode's model catalogue (default
+     ~/.cache/opencode/models.json, which opencode refreshes from models.dev).
 
 Lane spelling: <prefix>/<model id as the provider names it>. NIM ids carry a vendor,
 so nvidia/moonshotai/kimi-k3 is right, and nvidia/nemotron-3.5-lightning-30b-a3b is
@@ -31,10 +46,10 @@ completed to nvidia/nvidia/nemotron-… for you.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import socket
-import subprocess
 import sys
 import time
 import urllib.error
@@ -50,14 +65,18 @@ PROVIDERS = {
     "ollama": ("http://localhost:11434/v1", None, None),
     "api": (None, "DELEGATE_API_KEY", None),  # base from DELEGATE_BASE_URL
 }
+# prefix -> the provider id in opencode's catalogue
+CATALOGUE_IDS = {"zen": "opencode", "go": "opencode-go", "nvidia": "nvidia",
+                 "openrouter": "openrouter"}
 
 PREAMBLE = (
     "You are performing a single scoped file edit or file creation inside one project "
-    "directory. Use the tools: read a file before editing it, make only the requested "
-    "change, match the surrounding style exactly, and do not touch files other than "
-    "those named. If a named file is empty or missing, it is a new file: write its "
-    "complete contents from scratch. Never leave a named file empty. There is no shell "
-    "and no git. When the change is complete, call done with a one-line summary."
+    "directory. The named files' current contents come with the request; read any other "
+    "file before editing it. Make only the requested change, match the surrounding style "
+    "exactly, and do not touch files other than those named. If a named file is empty or "
+    "missing, it is a new file: write its complete contents from scratch. Never leave a "
+    "named file empty. There is no shell and no git. When the change is complete, call "
+    "done with a one-line summary."
 )
 
 TOOLS = [
@@ -88,6 +107,8 @@ TOOLS = [
 ]
 MUTATING = {"write", "edit"}
 READ_CAP = 200_000
+PRELOAD_CAP = 60_000  # chars of named files sent with the brief; larger ones are read in parts
+TRACE_CAP = 80
 
 
 class ToolError(Exception):
@@ -174,9 +195,25 @@ class Workspace:
         except TypeError as exc:
             raise ToolError(f"bad arguments for {name}: {exc}") from exc
 
+    def preload(self, named: list[str]) -> str:
+        """The named files' contents for the first message, up to PRELOAD_CAP chars."""
+        parts, used = [], 0
+        for rel in named:
+            full = os.path.join(self.root, rel)
+            if not os.path.isfile(full) or os.path.getsize(full) == 0:
+                continue  # a new file: nothing to show
+            with open(full, encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+            if used + len(text) > PRELOAD_CAP:
+                parts.append(f"{rel}: {len(text)} chars, not included; read it in parts with start/end.")
+                continue
+            used += len(text)
+            parts.append(f'<file path="{rel}">\n{text}</file>')
+        return "\n\n".join(parts)
+
 
 class LaneError(Exception):
-    """A request failed; `kind` is 'timeout' or 'error'."""
+    """A request failed; `kind` is 'timeout', 'turns' or 'error'."""
 
     def __init__(self, kind: str, message: str):
         super().__init__(message)
@@ -204,73 +241,192 @@ def base_url(prefix: str) -> str | None:
     return PROVIDERS[prefix][0]
 
 
-_OPENCODE_VERSION: str | None = None
+def catalogue_path() -> str:
+    return os.environ.get("DELEGATE_CATALOGUE") or os.path.expanduser("~/.cache/opencode/models.json")
 
 
-def opencode_version() -> str:
-    """The installed opencode CLI's version, or a known-good fallback."""
-    global _OPENCODE_VERSION
-    if _OPENCODE_VERSION is None:
-        _OPENCODE_VERSION = "1.18.25"
-        try:
-            out = subprocess.run(["opencode", "--version"], capture_output=True, text=True,
-                                 timeout=10).stdout.strip().split()
-            if out and out[-1][0].isdigit():
-                _OPENCODE_VERSION = out[-1]
-        except (OSError, subprocess.SubprocessError):
-            pass
-    return _OPENCODE_VERSION
+def catalogue_entry(prefix: str, model: str) -> tuple[dict, dict]:
+    """(provider, model) from opencode's catalogue, or empty dicts when it has neither."""
+    try:
+        with open(catalogue_path(), encoding="utf-8") as fh:
+            provider = json.load(fh).get(CATALOGUE_IDS.get(prefix, "")) or {}
+    except (OSError, ValueError):
+        return {}, {}
+    return provider, (provider.get("models") or {}).get(model) or {}
 
 
-def user_agent(prefix: str) -> str:
-    # The tier behind Zen's free models answers 429 FreeUsageLimitError to any
-    # User-Agent that does not start with "opencode/", before quota is looked
-    # at. Same key, same second, 2026-09-04: "delegate-agent/1" 429 in 0.7s,
-    # "opencode/1.18.25 delegate-agent/1 (work-delegation)" 200. So zen/ lanes
-    # lead with the installed CLI's identity and keep ours after it. Alexander
-    # chose to ship this knowing the gate is meant for the official client.
-    if prefix == "zen":
-        return f"opencode/{opencode_version()} delegate-agent/1 (work-delegation)"
-    # Cloudflare in front of opencode.ai answers 403 (error 1010) to the default
-    # urllib signature; any named client passes. Measured 2026-09-04.
-    return "delegate-agent/1 (work-delegation)"
+def protocol_for(provider: dict, entry: dict) -> str:
+    """'responses' for a model the catalogue serves through @ai-sdk/openai, else 'chat'.
+
+    Go answers 400 ModelProtocolUnsupported to a chat request for its GPT, Grok and
+    Muse models (2026-10-05). Its @ai-sdk/anthropic models (MiniMax, Qwen) answered
+    chat requests the same day, so they stay on chat.
+    """
+    npm = (entry.get("provider") or {}).get("npm") or provider.get("npm") or ""
+    return "responses" if npm == "@ai-sdk/openai" else "chat"
 
 
-def post_chat(base: str, key: str | None, body: dict, timeout: float,
-              prefix: str = "", session: str | None = None) -> dict:
-    data = json.dumps(body).encode("utf-8")
-    headers = {"Content-Type": "application/json", "Accept": "application/json",
-               "User-Agent": user_agent(prefix)}
+def list_price(entry: dict, usage: dict) -> float | None:
+    """US dollars at the catalogue's per-million prices, or None without prices."""
+    cost = entry.get("cost") or {}
+    if not cost:
+        return None
+    fresh = max(usage["in"] - usage["cached"], 0)
+    return (fresh * cost.get("input", 0) + usage["cached"] * cost.get("cache_read", cost.get("input", 0))
+            + usage["out"] * cost.get("output", 0)) / 1e6
+
+
+# Every lane names this client. Cloudflare in front of opencode.ai answers 403
+# (error 1010) to the default urllib signature; any named client passes
+# (2026-09-04), and Go's docs ask clients for their own User-Agent.
+USER_AGENT = "delegate-agent/1 (work-delegation)"
+
+
+def open_stream(url: str, key: str | None, session: str | None, body: dict, idle: float):
+    headers = {"Content-Type": "application/json", "Accept": "text/event-stream, application/json",
+               "User-Agent": USER_AGENT}
     if key:
         headers["Authorization"] = f"Bearer {key}"
     if session:
         headers["x-opencode-session"] = session
-    req = urllib.request.Request(f"{base}/chat/completions", data=data, headers=headers)
+    req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
+        # The timeout bounds every socket read, so it is a silence limit, not a total.
+        return urllib.request.urlopen(req, timeout=idle)
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:300].replace("\n", " ")
         raise LaneError("error", f"HTTP {exc.code} {detail}") from exc
     except urllib.error.URLError as exc:
         if isinstance(exc.reason, socket.timeout):
-            raise LaneError("timeout", f"no response in {int(timeout)}s") from exc
+            raise LaneError("timeout", f"no response in {int(idle)}s") from exc
         raise LaneError("error", f"connection: {exc.reason}") from exc
     except (socket.timeout, TimeoutError) as exc:
-        raise LaneError("timeout", f"no response in {int(timeout)}s") from exc
-    except ValueError as exc:
-        raise LaneError("error", f"non-JSON response: {exc}") from exc
-    if payload.get("error"):
-        err = payload["error"]
-        msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
-        raise LaneError("error", f"{err.get('type', 'error') if isinstance(err, dict) else 'error'}: {msg}")
-    if not payload.get("choices"):
+        raise LaneError("timeout", f"no response in {int(idle)}s") from exc
+
+
+def events(resp, idle: float, deadline: float):
+    """Each JSON object the answer carries: its SSE data lines, or one JSON body when
+    the gateway ignored stream=true."""
+    try:
+        if "text/event-stream" not in (resp.headers.get("Content-Type") or ""):
+            yield json.loads(resp.read().decode("utf-8"))
+            return
+        for raw in resp:
+            if time.monotonic() > deadline:
+                raise LaneError("timeout", "budget exhausted mid-answer")
+            line = raw.decode("utf-8", errors="replace").strip()
+            if not line.startswith("data:"):
+                continue  # blank separators, event names, keep-alive comments
+            data = line[5:].strip()
+            if data == "[DONE]":
+                return
+            yield json.loads(data)
+    except (socket.timeout, TimeoutError) as exc:
+        raise LaneError("timeout", f"stream stalled: no data for {int(idle)}s") from exc
+    except (ValueError, http.client.HTTPException) as exc:
+        raise LaneError("error", f"bad response: {exc}") from exc
+
+
+def raise_if_error(ev: dict) -> None:
+    err = ev.get("error")
+    if ev.get("type") in ("error", "response.failed"):
+        err = err or (ev.get("response") or {}).get("error") or ev
+    if isinstance(err, dict):
+        raise LaneError("error", f"{err.get('type') or err.get('code') or 'error'}: "
+                                 f"{err.get('message', str(err))}")
+    if err:
+        raise LaneError("error", f"error: {err}")
+
+
+def chat_turn(url, key, session, model, messages, extra, idle, deadline) -> dict:
+    body = {"model": model, "messages": messages, "tools": TOOLS, "tool_choice": "auto",
+            "stream": True, "stream_options": {"include_usage": True}, **extra}
+    text, slots, usage, rid, answered = [], {}, {}, None, False
+    with open_stream(f"{url}/chat/completions", key, session, body, idle) as resp:
+        for ev in events(resp, idle, deadline):
+            raise_if_error(ev)
+            rid = rid or ev.get("id")
+            usage = ev.get("usage") or usage
+            for choice in ev.get("choices") or []:
+                answered = True
+                part = choice.get("delta") or choice.get("message") or {}
+                text.append(part.get("content") or "")
+                for tc in part.get("tool_calls") or []:
+                    slot = slots.setdefault(tc.get("index", len(slots)), {"id": None, "name": "", "arguments": ""})
+                    fn = tc.get("function") or {}
+                    slot["id"] = slot["id"] or tc.get("id")
+                    slot["name"] = slot["name"] or fn.get("name") or ""
+                    slot["arguments"] += fn.get("arguments") or ""
+    if not answered:
         raise LaneError("error", "response has no choices")
-    return payload
+    return {"id": rid, "text": "".join(text), "calls": [slots[i] for i in sorted(slots)],
+            "usage": {"in": int(usage.get("prompt_tokens") or 0),
+                      "out": int(usage.get("completion_tokens") or 0),
+                      "cached": int((usage.get("prompt_tokens_details") or {}).get("cached_tokens") or 0),
+                      "cost": usage.get("cost")}}
+
+
+def responses_input(messages: list[dict]) -> tuple[str, list[dict]]:
+    """The chat history as Responses API instructions and input items."""
+    instructions, items = "", []
+    for m in messages:
+        if m["role"] == "system":
+            instructions = m["content"]
+        elif m["role"] == "tool":
+            items.append({"type": "function_call_output", "call_id": m["tool_call_id"],
+                          "output": m["content"]})
+        else:
+            if m.get("content"):
+                items.append({"role": m["role"], "content": m["content"]})
+            for tc in m.get("tool_calls") or []:
+                items.append({"type": "function_call", "call_id": tc["id"],
+                              "name": tc["function"]["name"], "arguments": tc["function"]["arguments"]})
+    return instructions, items
+
+
+def responses_turn(url, key, session, model, messages, extra, idle, deadline) -> dict:
+    instructions, items = responses_input(messages)
+    body = {"model": model, "instructions": instructions, "input": items,
+            "tools": [{"type": "function", **t["function"]} for t in TOOLS],
+            "tool_choice": "auto", "stream": True, "store": False, **extra}
+    text, calls, usage, rid = [], [], {}, None
+
+    def take(item: dict) -> None:
+        if item.get("type") == "function_call":
+            calls.append({"id": item.get("call_id"), "name": item.get("name") or "",
+                          "arguments": item.get("arguments") or ""})
+        elif item.get("type") == "message":
+            text.extend(c.get("text", "") for c in item.get("content") or [] if c.get("type") == "output_text")
+
+    with open_stream(f"{url}/responses", key, session, body, idle) as resp:
+        for ev in events(resp, idle, deadline):
+            raise_if_error(ev)
+            kind = ev.get("type", "")
+            if kind == "response.output_item.done":
+                take(ev.get("item") or {})
+            elif kind in ("response.completed", "response.incomplete") or ev.get("object") == "response":
+                done = ev.get("response") or ev
+                if done.get("status") == "incomplete":
+                    why = (done.get("incomplete_details") or {}).get("reason", "unknown")
+                    raise LaneError("error", f"incomplete response: {why}")
+                rid, usage = done.get("id"), done.get("usage") or {}
+                if ev.get("object") == "response":  # a whole answer, not a stream
+                    for item in done.get("output") or []:
+                        take(item)
+    return {"id": rid, "text": "".join(text), "calls": calls,
+            "usage": {"in": int(usage.get("input_tokens") or 0),
+                      "out": int(usage.get("output_tokens") or 0),
+                      "cached": int((usage.get("input_tokens_details") or {}).get("cached_tokens") or 0),
+                      "cost": usage.get("cost")}}
 
 
 def fmt_k(n: int) -> str:
     return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
+
+
+def trace(stats: dict, line: str) -> None:
+    if len(stats["trace"]) < TRACE_CAP:
+        stats["trace"].append(line[:120])
 
 
 def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadline: float,
@@ -286,11 +442,12 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
     if not base:
         raise LaneError("error", "no base URL (set DELEGATE_BASE_URL for api/)")
     key = resolve_key(prefix)
-    # Zen's free models take no key at all (the gateway treats a missing or
-    # "public" key as anonymous; measured 2026-09-04). A paid Zen model without
-    # a key answers "Missing API key" at once, so the lane still fails fast.
-    if key is None and PROVIDERS[prefix][1] and prefix != "zen":
+    if key is None and PROVIDERS[prefix][1]:
         raise LaneError("error", f"no key ({PROVIDERS[prefix][1]} unset, auth.json has none)")
+    provider, entry = catalogue_entry(prefix, model)
+    stats["protocol"] = protocol_for(provider, entry)
+    turn_fn = responses_turn if stats["protocol"] == "responses" else chat_turn
+    extra = {"usage": {"include": True}} if prefix == "openrouter" else {}
 
     # Go answers 400 MissingSessionID to any request without a stable
     # x-opencode-session per conversation (every model, 2026-09-07 onward;
@@ -302,6 +459,9 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
     user = brief
     if named:
         user += "\n\nTarget files (relative to the project root): " + ", ".join(named)
+        shown = ws.preload(named)
+        if shown:
+            user += "\n\nTheir current contents, so there is no need to read them first:\n\n" + shown
     messages = [{"role": "system", "content": PREAMBLE}, {"role": "user", "content": user}]
     nudges = 0
     while True:
@@ -310,12 +470,9 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
         remaining = deadline - time.monotonic()
         if remaining <= 1:
             raise LaneError("timeout", f"budget of {args.budget}s exhausted")
-        body = {"model": model, "messages": messages, "tools": TOOLS, "tool_choice": "auto"}
-        if prefix == "openrouter":
-            body["usage"] = {"include": True}
         try:
-            resp = post_chat(base, key, body, min(args.request_timeout, remaining), prefix,
-                             session)
+            resp = turn_fn(base, key, session, model, messages, extra,
+                           min(args.request_timeout, remaining), deadline)
         except LaneError as exc:
             if exc.kind == "timeout" and stats["committed"] and not stats.get("retried"):
                 stats["retried"] = True
@@ -324,43 +481,46 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
                 continue
             raise
         stats["turns"] += 1
-        stats["session"] = stats["session"] or resp.get("id")
-        usage = resp.get("usage") or {}
-        stats["tokens_in"] += int(usage.get("prompt_tokens") or 0)
-        stats["tokens_out"] += int(usage.get("completion_tokens") or 0)
-        if usage.get("cost") is not None:
-            stats["cost_usd"] = (stats["cost_usd"] or 0.0) + float(usage["cost"])
+        turn = stats["turns"]
+        stats["session"] = stats["session"] or resp["id"]
+        usage = resp["usage"]
+        stats["tokens_in"] += usage["in"]
+        stats["tokens_out"] += usage["out"]
+        price, source = (usage["cost"], "provider") if usage["cost"] is not None else (list_price(entry, usage), "catalogue")
+        if price is not None:
+            stats["cost_usd"] = (stats["cost_usd"] or 0.0) + float(price)
+            stats["cost_source"] = stats["cost_source"] or source
 
-        msg = resp["choices"][0].get("message") or {}
-        calls = msg.get("tool_calls") or []
-        # Echo the assistant turn back verbatim, minus provider extras the API rejects.
-        messages.append({k: v for k, v in msg.items()
-                         if k in ("role", "content", "tool_calls")} | {"role": "assistant"})
+        calls = [dict(c, id=c["id"] or f"call_{turn}_{i}") for i, c in enumerate(resp["calls"])]
+        assistant = {"role": "assistant", "content": resp["text"] or None}
+        if calls:
+            assistant["tool_calls"] = [{"id": c["id"], "type": "function",
+                                        "function": {"name": c["name"], "arguments": c["arguments"] or "{}"}}
+                                       for c in calls]
+        messages.append(assistant)
         if not calls:
+            trace(stats, f"{turn} no tool call")
             if ws.touched:
-                print(f"{lane}  turn {stats['turns']}/{args.max_turns}  finished without done",
-                      file=sys.stderr)
+                print(f"{lane}  turn {turn}/{args.max_turns}  finished without done", file=sys.stderr)
                 return "ok"
             if nudges < 2:
                 nudges += 1
                 messages.append({"role": "user", "content":
                                  "Use the tools to make the change, then call done."})
-                print(f"{lane}  turn {stats['turns']}/{args.max_turns}  no tool call; nudging",
-                      file=sys.stderr)
+                print(f"{lane}  turn {turn}/{args.max_turns}  no tool call; nudging", file=sys.stderr)
                 continue
             return "ok"  # nothing changed; the wrapper reports the no-op
 
         finished = False
         summary = []
         for call in calls:
-            fn = call.get("function") or {}
-            name = fn.get("name", "")
+            name = call["name"]
             try:
-                targs = json.loads(fn.get("arguments") or "{}")
+                targs = json.loads(call["arguments"] or "{}")
                 if not isinstance(targs, dict):
                     raise ValueError("arguments must be an object")
             except ValueError as exc:
-                result = f"error: could not parse arguments: {exc}"
+                targs, result = {}, f"error: could not parse arguments: {exc}"
             else:
                 if name == "done":
                     finished = True
@@ -372,10 +532,11 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
                             stats["committed"] = True
                     except ToolError as exc:
                         result = f"error: {exc}"
-            summary.append(f"{name} {targs.get('path', '') if isinstance(targs, dict) else ''}".strip())
-            messages.append({"role": "tool", "tool_call_id": call.get("id", name),
-                             "content": result})
-        print(f"{lane}  turn {stats['turns']}/{args.max_turns}  {', '.join(summary)}  "
+            what = f"{name} {targs.get('path', '')}".strip()
+            summary.append(what)
+            trace(stats, f"{turn} {what} " + (result if result.startswith("error") else "ok"))
+            messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
+        print(f"{lane}  turn {turn}/{args.max_turns}  {', '.join(summary)}  "
               f"in {fmt_k(stats['tokens_in'])} out {fmt_k(stats['tokens_out'])}", file=sys.stderr)
         if finished:
             return "ok"
@@ -383,25 +544,31 @@ def run_lane(lane: str, ws: Workspace, brief: str, named: list[str], args, deadl
 
 def doctor() -> int:
     """One line per direct lane: does a key resolve, and does the gateway answer?"""
+    path = catalogue_path()
+    try:
+        with open(path, encoding="utf-8") as fh:
+            n = len((json.load(fh).get("opencode-go") or {}).get("models") or {})
+        print(f"PASS  model catalogue: {path} lists {n} go/ models")
+    except (OSError, ValueError):
+        print(f"note  model catalogue missing ({path}): every lane speaks chat, no list prices; "
+              "run opencode once to fetch it")
     for prefix, (base, env, entry) in PROVIDERS.items():
         b = base_url(prefix)
         if prefix == "api" and not b:
             print("note  api/ lane: set DELEGATE_BASE_URL and DELEGATE_API_KEY to use it")
             continue
         key = resolve_key(prefix)
-        if env and key is None and prefix != "zen":
+        if env and key is None:
             src = f"{env} unset" + (f", auth.json has no {entry}" if entry else "")
             print(f"note  {prefix}/ lane: no key ({src})")
             continue
-        if key is None and prefix == "zen":
-            print("note  zen/ lane: no key; free models only")
         req = urllib.request.Request(f"{b}/models", headers={
-            "Accept": "application/json", "User-Agent": user_agent(prefix),
+            "Accept": "application/json", "User-Agent": USER_AGENT,
             **({"Authorization": f"Bearer {key}"} if key else {})})
         try:
             with urllib.request.urlopen(req, timeout=3) as resp:
                 n = len((json.loads(resp.read().decode("utf-8")) or {}).get("data") or [])
-            how = "key resolves" if key else "keyless, free models only"
+            how = "key resolves" if key else "no key needed"
             print(f"PASS  {prefix}/ lane: {how}, {b} lists {n} models")
         except urllib.error.HTTPError as exc:
             print(f"FAIL  {prefix}/ lane: {b}/models answered HTTP {exc.code}")
@@ -421,7 +588,8 @@ def main() -> int:
     ap.add_argument("--file", action="append", default=[])
     ap.add_argument("--budget", type=float, default=480)
     ap.add_argument("--max-turns", type=int, default=20)
-    ap.add_argument("--request-timeout", type=float, default=120)
+    ap.add_argument("--request-timeout", type=float, default=120,
+                    help="longest silence allowed, before the first byte or between two")
     args = ap.parse_args()
 
     ws = Workspace(args.dir)
@@ -429,8 +597,9 @@ def main() -> int:
         brief = fh.read()
     named = [os.path.relpath(os.path.realpath(f), ws.root) for f in args.file]
     lanes = [l.strip() for l in args.lanes.split(",") if l.strip()]
-    stats = {"lane": None, "lanes_skipped": [], "turns": 0, "tokens_in": 0, "tokens_out": 0,
-             "cost_usd": None, "session": None, "committed": False}
+    stats = {"lane": None, "lanes_skipped": [], "protocol": None, "turns": 0, "tokens_in": 0,
+             "tokens_out": 0, "cost_usd": None, "cost_source": None, "session": None,
+             "trace": [], "committed": False}
     deadline = time.monotonic() + args.budget
     rc = 2
     skip_kinds: list[str] = []

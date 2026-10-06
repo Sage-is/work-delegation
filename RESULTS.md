@@ -248,3 +248,24 @@ Things learned on the way:
   135 tasks.
 - opencode's "requests per 5 hours" figures assume 71,300 cached tokens per
   request, so they do not compare with delegation tasks of about 3,000 tokens.
+- 2026-09-15: zen/ is paid-only. The `opencode/` User-Agent and the
+  keyless-zen path are gone (Alexander's call). Keyless free is
+  `opencode/big-pickle` through the CLI, or `ollama/` offline.
+
+## Field notes — 2026-10-05 (measure before deciding)
+
+Prompted by Spotify's Portal post: hooks send big file reads to a cheap model, "mean bulk-read savings were around a whopping 90%". We measured before building. `delegate-cost` reproduces every number below.
+
+**Reads are not our cost.** 258 transcripts since 2026-09-05, 9,939 API calls. Cache re-reads are 66% of input cost; the median main-session call carries 297k tokens of context. Read results are 3.0%. Whole-file reads over 350 lines are 0.6%, and 44 of 57 ran inside subagents. Delegating the ones not followed by an edit would save 0.4%. Portal's 90% is per read, not per session. Not built.
+
+**Where the cost goes instead** (estimated): the prefix 13.8%; Bash 15.8% (results 10.3, calls 5.5); plans 6.1% (ExitPlanMode 4.0, re-injected plan files 2.1); hook output, the skill listing and other attachments about 15%; Edit and Write content 3.5%.
+
+**Writes pay only when long.** Saving to the orchestrator by output size, 41 real runs: under 2000 chars -93%, 2000-4000 -23%, 4000-8000 +41%, over 8000 +52%. The hook line moves to 4000 (`DELEGATE_MIN_CHARS`), and test files are exempt.
+
+**The stalls were long answers.** All four rc 6 rows were large outputs cut off by the 120s whole-response timeout. Requests now stream, and the timeout is a silence limit. Case 11 in `tests/agent.sh` fails on the old agent with rc 6, the field failure, and passes on the new one.
+
+**Protocols.** Go's GPT, Grok and Muse models answer a chat request with 400 `ModelProtocolUnsupported`. The agent now reads each model's protocol from opencode's catalogue and speaks the Responses API to `@ai-sdk/openai` models. `go/gpt-6-luna` went from 0/4 to 6/6 and leads the default list. The catalogue's prices fill `cost_usd`.
+
+**The loops.** The four rc 8 rows read 257k-694k tokens and wrote almost nothing, and the ledger kept no detail. Each row now carries a trace. On t5 it caught `go/mimo-v2.6-flash` writing the file, then editing it until the cap. Named files now go with the brief: `go/deepseek-v4.1-flash` fell from 3-5 turns to 2-3 on the small tasks.
+
+**Harder tasks.** t5 (a new 9-12 KB runbook) and t6 (an 11.6 KB rewrite that must keep every code block and URL) come from the failure shapes. Both: gpt-6-luna, glm-5.3-flash, minimax-m3, hy4-preview. t6 only: deepseek-v4.1-flash and claude/haiku (an extra `## Contents` heading on t5), claude/sonnet (t5 short), mimo-v2.6-flash (t5 loop). Tables: `results/matrix-2026-10-05.md` (before the fixes), `-streaming.md`, `-hard.md`.

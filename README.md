@@ -12,14 +12,15 @@ Generating file content is the expensive part of an AI coding session. Reading a
 
 ## <img src="docs/art/emblems/stopwatch.svg" width="32" height="32" alt="" align="absmiddle"> The numbers
 
-On 2026-08-15 we ran our matrix of 8 tasks across 4 types through delegate-edit against a sandbox git repo. Every diff was reviewed line by line. Both logic fixes were verified with assertions.
+On 2026-10-05 we ran six tasks through delegate-edit: two prose, two Python, a 9-12 KB new file and an 11.6 KB rewrite. Each run used a fresh sandbox repo, and a script checked every result (`results/matrix-2026-10-05*.md`).
 
-The free tier (opencode/deepseek-v4-flash-free): 4/4 correct, zero retries, 7-15 seconds per task, cost zero.
+Go plan (go/gpt-6-luna): 6/6 correct, 5-56 seconds per task, $0.0002-0.0031 a task at list price, inside the flat subscription.
 
-The paid tier (opencode-go/kimi-k3): 4/4 correct, zero retries, 38-70 seconds per task, cost in cents.
+Delegation pays only for long output. In our ledger, a delegated text under 2,000 characters cost the orchestrator 93% more than typing it; one over 4,000 saved 41%. `delegate-cost` measures your own.
 
-Quality matched at this task size. The free tier wins on speed and cost. Default routing is free first, with kimi-k3 for retries only. Switch to other models for strengths or privacy.
+Free tier, no key (opencode/big-pickle through the opencode CLI, 2026-09-13): 4/4 correct, 18-44 seconds per task, cost zero.
 
+One lane list serves both: `go/gpt-6-luna,go/deepseek-v4.1-flash,opencode/big-pickle`. With a Go key the first lane answers. Without one the Go lanes skip in milliseconds and the free lane types. Zen API users opt in with their own `zen/…` list, and `ollama/<model>` runs offline with no key. Switch to other models for strengths or privacy.
 
 ## <img src="docs/art/emblems/flag.svg" width="32" height="32" alt="" align="absmiddle"> How it works
 

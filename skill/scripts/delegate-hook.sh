@@ -29,7 +29,10 @@ decision=$(DELEGATE_PAYLOAD="$payload" DELEGATE_HOOK_LOG="${DELEGATE_LOG:-$HOME/
 import json, os, time
 from datetime import datetime
 
-MIN_CHARS = 2000  # below this, delegation overhead exceeds savings
+# Below this, delegating costs the orchestrator more than typing it. Ledger,
+# 41 runs to 2026-10-05, net saving by output size: under 2k chars -93%,
+# 2-4k -23%, 4-8k +41%, over 8k +52% (RESULTS.md). DELEGATE_MIN_CHARS overrides.
+MIN_CHARS = int(os.environ.get("DELEGATE_MIN_CHARS") or 4000)
 OUTAGE_WINDOW_S = 30 * 60
 
 
@@ -60,8 +63,11 @@ content = ti.get("content", "") if tool == "Write" else ti.get("new_string", "")
 delegable = path.endswith((".md", ".py", ".txt", ".rst"))
 big = len(content) >= MIN_CHARS
 plan_file = "/plans/" in path or "/memory/" in path or "/.claude/" in path
+# Tests are load-bearing: the skill keeps them inline, never delegated.
+name = os.path.basename(path)
+test_file = "/tests/" in path or name.startswith("test_") or name.endswith("_test.py")
 
-if delegable and big and not plan_file and (row := recent_failure()):
+if delegable and big and not plan_file and not test_file and (row := recent_failure()):
     print(json.dumps({
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
@@ -73,7 +79,7 @@ if delegable and big and not plan_file and (row := recent_failure()):
             ),
         }
     }))
-elif delegable and big and not plan_file:
+elif delegable and big and not plan_file and not test_file:
     print(json.dumps({
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",

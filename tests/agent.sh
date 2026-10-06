@@ -25,6 +25,13 @@ echo $! >> "$PIDS"
 for _ in $(seq 1 50); do curl -s -o /dev/null "http://127.0.0.1:$PORT/reset" -X POST && break; sleep 0.1; done
 export DELEGATE_BASE_URL="http://127.0.0.1:$PORT" DELEGATE_API_KEY=fake-api-key
 unset OPENCODE_API_KEY OPENCODE_GO_API_KEY NVIDIA_API_KEY OPENROUTER_API_KEY
+# A catalogue of our own: go/gpt-x speaks the Responses API, go/priced has list prices.
+cat > "$T/catalogue.json" <<'JSON'
+{"opencode-go": {"npm": "@ai-sdk/openai-compatible", "models": {
+  "gpt-x": {"provider": {"npm": "@ai-sdk/openai"}, "cost": {"input": 1, "output": 2}},
+  "priced": {"cost": {"input": 1, "output": 2}}}}}
+JSON
+export DELEGATE_CATALOGUE=$T/catalogue.json
 
 script() { printf '%s' "$1" > "$T/script.json"; : > "$T/record.jsonl"; curl -s -o /dev/null -X POST "http://127.0.0.1:$PORT/reset"; }
 reset_repo() {
@@ -113,8 +120,8 @@ OPENCODE_GO_API_KEY=env-wins DELEGATE_AUTH_JSON=$T/auth.json agent --lanes go/m1
 check "9 env var wins" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['auth'])")" "Bearer env-wins"
 check "9 no key skips a keyed lane" "$(DELEGATE_AUTH_JSON=/nonexistent agent --lanes go/m1)" 2
 check "9 reason names the variable" "$(out lanes_skipped | grep -c OPENCODE_GO_API_KEY)" 1
-check "9 zen runs keyless" "$(DELEGATE_AUTH_JSON=/nonexistent agent --lanes zen/m1)" 0
-check "9 zen keyless sends no auth" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['auth'])")" None
+check "9 zen without a key skips" "$(OPENCODE_API_KEY= DELEGATE_AUTH_JSON=/nonexistent agent --lanes zen/m1)" 2
+check "9 zen reason names the variable" "$(out lanes_skipped | grep -c OPENCODE_API_KEY)" 1
 
 # 9b. NIM model ids keep their vendor; NVIDIA's own get it back.
 reset_repo
@@ -124,15 +131,14 @@ check "9b nvidia bare id completed" "$(python3 -c "import json; print(json.loads
 NVIDIA_API_KEY=k agent --lanes nvidia/moonshotai/kimi-k3 > /dev/null
 check "9b nvidia vendor id kept" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['body']['model'])")" moonshotai/kimi-k3
 
-# 9c. zen/ lanes lead with the opencode client identity; others do not.
+# 9c. Every lane names this client, zen/ included; none claims to be opencode.
 reset_repo
 script '[{"tool":"done","args":{"summary":"ok"}}]'
+ua() { python3 -c "import json; print({k.lower(): v for k, v in json.loads(open('$T/record.jsonl').readlines()[-1])['headers'].items()}.get('user-agent',''))"; }
 OPENCODE_API_KEY=k agent --lanes zen/m1 > /dev/null
-ua=$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['headers'].get('User-Agent',''))")
-check "9c zen UA starts with opencode/" "$(printf '%s' "$ua" | grep -c '^opencode/[0-9]')" 1
-check "9c zen UA still names us" "$(printf '%s' "$ua" | grep -c 'delegate-agent/1')" 1
+check "9c zen sends our UA" "$(ua)" "delegate-agent/1 (work-delegation)"
 agent --lanes api/m1 > /dev/null
-check "9c other lanes keep our UA" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readlines()[-1])['headers'].get('User-Agent',''))")" "delegate-agent/1 (work-delegation)"
+check "9c other lanes send our UA" "$(ua)" "delegate-agent/1 (work-delegation)"
 
 # 9d. opencode.ai lanes send one stable x-opencode-session per conversation.
 reset_repo
@@ -155,6 +161,65 @@ python3 "$AGENT" --dir "$T/repo" --brief-file "$T/brief" --lanes api/m1 > "$T/o2
 wait $p1; r1=$?; wait $p2; r2=$?
 check "10 concurrent runs both succeed" "$r1$r2" 00
 check "10 both files landed" "$(cat "$T/repo/f.md" "$T/repo/g.md" | tr '\n' ' ' | sed 's/ *$//')" "delegated second"
+
+# 11. A slow answer that keeps sending is not a stall: the timeout is a silence limit.
+reset_repo
+script '[{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"},"drip":0.4},{"tool":"done","args":{"summary":"ok"}}]'
+check "11 slow stream outlives the timeout" "$(agent --lanes api/m1 --request-timeout 1 --file "$T/repo/f.md")" 0
+check "11 file changed" "$(cat "$T/repo/f.md")" delegated
+check "11 the request asked for a stream" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readline())['body']['stream'])")" True
+
+# 12. Silence mid-answer before any edit is a stall: the next lane takes over.
+reset_repo
+script '[{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"},"stall":3},{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"}},{"tool":"done","args":{"summary":"ok"}}]'
+check "12 mid-stream stall hops" "$(agent --lanes api/m1,api/m2 --request-timeout 1)" 0
+check "12 skip says stalled" "$(out lanes_skipped | grep -c 'stream stalled')" 1
+check "12 second lane did it" "$(out lane)" api/m2
+
+# 13. A gateway that ignores stream=true and answers one JSON body still works.
+reset_repo
+script '[{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"},"json":true},{"tool":"done","args":{"summary":"ok"},"json":true}]'
+check "13 plain JSON answer accepted" "$(agent --lanes api/m1)" 0
+check "13 file changed" "$(cat "$T/repo/f.md")" delegated
+
+# 14. The catalogue sends go/gpt-x to the Responses API, with tool results as items.
+reset_repo
+script '[{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"}},{"tool":"done","args":{"summary":"ok"}}]'
+check "14 responses lane works" "$(OPENCODE_GO_API_KEY=k agent --lanes go/gpt-x --file "$T/repo/f.md")" 0
+check "14 file changed" "$(cat "$T/repo/f.md")" delegated
+check "14 protocol recorded" "$(out protocol)" responses
+check "14 path is /responses" "$(python3 -c "import json; print(json.loads(open('$T/record.jsonl').readline())['path'])")" /responses
+check "14 tool result sent back as an item" "$(python3 -c "
+import json
+body=json.loads(open('$T/record.jsonl').readlines()[1])['body']
+print([i['type'] for i in body['input'] if 'type' in i], bool(body['instructions']))")" "['function_call', 'function_call_output'] True"
+check "14 list price from the catalogue" "$(out cost_usd)" 0.00024
+check "14 cost source" "$(out cost_source)" catalogue
+
+# 15. Chat lanes: the gateway's own cost wins; without one, the catalogue's price.
+reset_repo
+script '[{"tool":"done","args":{"summary":"ok"},"cost":null}]'
+OPENCODE_GO_API_KEY=k agent --lanes go/priced > /dev/null
+check "15 chat lane priced from the catalogue" "$(out cost_usd) $(out cost_source) $(out protocol)" "0.00012 catalogue chat"
+script '[{"tool":"done","args":{"summary":"ok"}}]'
+agent --lanes api/m1 > /dev/null
+check "15 gateway cost wins" "$(out cost_usd) $(out cost_source)" "0.0001 provider"
+
+# 16. Named files that exist ride along with the brief; a new one does not.
+reset_repo
+script '[{"tool":"done","args":{"summary":"ok"}}]'
+agent --lanes api/m1 --file "$T/repo/f.md" --file "$T/repo/new.md" > /dev/null
+first_user() { python3 -c "import json; m=json.loads(open('$T/record.jsonl').readline())['body']['messages']; print([x for x in m if x['role']=='user'][0]['content'])"; }
+check "16 named file preloaded" "$(first_user | grep -c '<file path="f.md">')" 1
+check "16 new file not preloaded" "$(first_user | grep -c '<file path="new.md">')" 0
+
+# 17. Every tool call lands in the trace, errors with their reason.
+reset_repo
+script '[{"tool":"edit","args":{"path":"two.md","old":"a","new":"b"}},{"tool":"edit","args":{"path":"f.md","old":"base","new":"delegated"}},{"tool":"done","args":{"summary":"ok"}}]'
+agent --lanes api/m1 > /dev/null
+check "17 trace length" "$(out trace len)" 3
+check "17 trace keeps the error" "$(python3 -c "import json; print(json.load(open('$T/out.json'))['trace'][0][:34])")" "1 edit two.md error: old matches 2"
+check "17 trace ends with done" "$(python3 -c "import json; print(json.load(open('$T/out.json'))['trace'][-1])")" "3 done ok"
 
 # ----------------------------------------------------------------------------
 echo

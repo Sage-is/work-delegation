@@ -9,7 +9,7 @@ Delegate the requested file edit to a cheaper model through the delegate-edit wr
 2. Run. Lanes are tried in order; a lane that fails before editing hands off to the next one in seconds:
 
    ```sh
-   ~/bin/delegate-edit <project-dir> go/deepseek-v4.1-flash,go/minimax-m3,opencode/big-pickle "<brief>" <files...>
+   ~/bin/delegate-edit <project-dir> go/gpt-6-luna,go/deepseek-v4.1-flash,opencode/big-pickle "<brief>" <files...>
    ```
 
    `ollama/<model>` runs offline; `claude/<model>` hands the job to Claude Code with Read, Edit, and Write only.

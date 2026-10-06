@@ -69,6 +69,7 @@ install-bin: guard-no-name-kills
 	install -m 0755 skill/scripts/delegate-edit $(BIN_DIR)/delegate-edit
 	install -m 0755 skill/scripts/delegate-agent $(BIN_DIR)/delegate-agent
 	install -m 0755 skill/scripts/delegate-stall-verdict $(BIN_DIR)/delegate-stall-verdict
+	install -m 0755 skill/scripts/delegate-cost $(BIN_DIR)/delegate-cost
 	@echo "OK: $(BIN_DIR)/delegate-edit"
 
 install-claude: guard-no-name-kills
@@ -77,6 +78,7 @@ install-claude: guard-no-name-kills
 	install -m 0755 skill/scripts/delegate-edit $(CLAUDE_SKILL_DIR)/scripts/delegate-edit
 	install -m 0755 skill/scripts/delegate-agent $(CLAUDE_SKILL_DIR)/scripts/delegate-agent
 	install -m 0755 skill/scripts/delegate-stall-verdict $(CLAUDE_SKILL_DIR)/scripts/delegate-stall-verdict
+	install -m 0755 skill/scripts/delegate-cost $(CLAUDE_SKILL_DIR)/scripts/delegate-cost
 	install -m 0755 skill/scripts/delegate-hook.sh $(CLAUDE_SKILL_DIR)/scripts/delegate-hook.sh
 	@echo "OK: $(CLAUDE_SKILL_DIR)"
 
@@ -110,6 +112,7 @@ test:
 	@bash tests/agent.sh
 	@bash tests/wrapper.sh
 	@bash tests/hook.sh
+	@bash tests/cost.sh
 	@python3 -c 'import flask' 2>/dev/null && python3 -m unittest app/test_admin.py || echo "note  Flask missing: app tests skipped (pip install flask)"
 	@$(MAKE) -s kit_check
 
@@ -148,13 +151,21 @@ diffs_prune:
 	echo "pruned $$n patch file(s) older than 90 days"
 
 # The measurement: make matrix LANES=go/deepseek-v4-flash,ollama/qwen3.5:9b
-# Four tasks per lane through the real wrapper; rows land in results/matrix-<date>.md.
+# Six tasks per lane (TASKS=a,b for some) through the real wrapper; rows land in results/matrix-<date>.md.
 matrix:
-	@bash tests/matrix/run.sh "$(LANES)"
+	@TASKS=$(TASKS) bash tests/matrix/run.sh "$(LANES)"
+
+# What the matrix has not scored yet: catalogue models new since the last run.
+unmeasured:
+	@python3 tests/matrix/unmeasured.py $(or $(PREFIX),go)
+
+# Where Claude Code's tokens go, and what delegation saves: make cost SINCE=2026-09-05
+cost:
+	@python3 skill/scripts/delegate-cost $(if $(SINCE),--since $(SINCE),)
 
 uninstall:
 	rm -rf $(CLAUDE_SKILL_DIR)
-	rm -f $(BIN_DIR)/delegate-edit $(BIN_DIR)/delegate-agent $(BIN_DIR)/delegate-stall-verdict
+	rm -f $(BIN_DIR)/delegate-edit $(BIN_DIR)/delegate-agent $(BIN_DIR)/delegate-stall-verdict $(BIN_DIR)/delegate-cost
 	rm -f $(CODEX_PROMPT_DIR)/delegate-edit.md
 	rm -f $(OPENCODE_CMD_DIR)/delegate-edit.md
 	rm -rf $(PI_SKILL_DIR)
@@ -215,7 +226,7 @@ things_clean:
 	git clean --exclude='!.env*' -Xdf
 
 # 8. .PHONY declarations
-.PHONY: help show_vars verify require_gitflow_next \
+.PHONY: help show_vars verify require_gitflow_next cost unmeasured \
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
 	install install-bin install-claude install-codex install-opencode install-pi \

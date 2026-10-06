@@ -53,6 +53,35 @@ elif task == "t4-py-logic":
     assert p([1, 2, 3, 4], 2) == [[1, 2], [3, 4]]
     assert p([], 3) == []
     assert "Split items into pages" in read("src/paginate.py")
+elif task == "t5-long-gen":
+    text = read("docs/runbook.md")
+    want = ["Daily Checks", "Weekly Backups", "Restore From Backup", "Upgrading",
+            "Rotating Secrets", "Disk Space", "Incident Response", "Decommissioning"]
+    assert text.startswith("# Ledgerly Operations Runbook"), text[:40]
+    assert re.findall(r"^## (.+?)\s*$", text, re.M) == want, re.findall(r"^## (.+)$", text, re.M)
+    head = text.split("\n## ", 1)[0]
+    assert len(re.findall(r"\[[^]]+\]\(#[a-z0-9-]+\)", head)) == 8, "contents list needs eight anchor links"
+    for body in text.split("\n## ")[1:]:
+        steps = re.findall(r"^\d+\. \S", body, re.M)
+        assert len(steps) >= 5, f"{body.splitlines()[0]}: {len(steps)} steps"
+    assert len(text) >= 8000, len(text)
+    assert not re.search(r"lorem|TODO|TBD|\.\.\.$", text, re.I | re.M), "placeholder"
+elif task == "t6-big-rewrite":
+    import pathlib
+    orig = (pathlib.Path(__file__).parent / "fixtures/docs/install-guide.md").read_text()
+    text = read("docs/install-guide.md")
+    assert text.splitlines()[0] == orig.splitlines()[0], text[:40]
+    heads = lambda t: re.findall(r"^## (.+)$", t, re.M)
+    assert heads(text) == heads(orig), heads(text)
+    for block in re.findall(r"^```.*?^```", orig, re.M | re.S):
+        assert block in text, f"code block changed: {block[:40]}"
+    for url in re.findall(r"https://\S+[^.\s]", orig):
+        assert url in text, f"lost {url}"
+    assert len(text) <= 0.6 * len(orig), f"{len(text)} > 60% of {len(orig)}"
+    low = text.lower()
+    for filler in ("it should be noted", "basically", "in order to", "it is important to note",
+                   "as a matter of fact", "needless to say", "actually", "whatsoever"):
+        assert filler not in low, filler
 else:
     sys.exit(f"unknown task {task}")
 print("correct")

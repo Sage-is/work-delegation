@@ -46,6 +46,8 @@ check "1 ledger turns" "$(row turns)" 2
 check "1 ledger session" "$(row session)" stub-0
 check "1 no lock taken" "$([ -d "$T/lock" ] && echo held || echo free)" free
 check "1 run id recorded" "$(row run_id | grep -cE '^[0-9]{8}T[0-9]{6}-[0-9]+$')" 1
+check "1 ledger trace" "$(python3 -c "import json; print(json.loads(open('$T/log.jsonl').readlines()[-1])['trace'])")" "['1 edit f.md ok', '2 done ok']"
+check "1 ledger cost source and protocol" "$(row cost_source) $(row protocol)" "provider chat"
 check "1 patch saved beside the ledger" "$(grep -c '^+delegated' "$(row diff_file)")" 1
 
 # 2. Silent no-op is still caught when the model changes nothing.
@@ -71,7 +73,7 @@ check "4 diff shown on failure" "$(grep -c 'f.md' "$T/out.txt")" 1
 
 # 5. A comma list with a non-direct prefix is a usage error, not a run.
 reset_repo
-check "5 comma list needs direct prefixes" "$(run "$T/repo" opencode/x,go/y 'edit f.md' f.md)" 2
+check "5 comma list must be direct lanes" "$(run "$T/repo" opencode/x,go/y 'edit f.md' f.md)" 2
 check "5 claude/ may not trail a list" "$(run "$T/repo" go/y,claude/x 'edit f.md' f.md)" 2
 
 # 6. Two wrapper runs at once in one repo, each naming its own file.

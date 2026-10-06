@@ -6,16 +6,16 @@ Expensive models judge. Cheap models type.
 Free-tier typing with premium-tier judgment.
 The expensive AI decides. The cheap AI types.
 Every line you delegate, you still review.
-Free tier scored 4 for 4 in tests. Zero retries.
+A Go plan lane scored 4 of 4. The free tier scored 4 of 4.
 
 ## One-liner
 
-Route file typing to a free AI model while an expensive model keeps the judgment.
+Route file typing to a free model while an expensive model keeps the judgment.
 
 ## Short blurb
 
-work-delegation hands bulk file typing to a free model while your paid assistant keeps the judgment. In an 8-run benchmark, a free model scored 4 for 4 on real edit tasks at 7 to 15 seconds each. The orchestrator reviewed every diff before anything counted as done.
+work-delegation hands bulk file typing to a free model while your paid assistant keeps the judgment. On 2026-09-13 a Go plan lane scored 4 of 4 on real edit tasks at 8 to 19 seconds each. The free tier, with no key, scored 4 of 4 at 18 to 44 seconds through the opencode CLI. The assistant writes the brief and reviews every diff before anything counts as done.
 
 ## Elevator pitch
 
-Bulk typing burns premium tokens that a free model could handle. You write a brief naming the target files and the exact change. delegate-edit hands it to opencode running headless on a free model. The model edits and returns a diff. You review it before anything counts as done. In an 8-run matrix the free tier scored 4 for 4, 7 to 15 seconds per task, zero retries, zero cost, quality matching the paid tier. Keep judgment on the expensive model. Let the free model type.
+Bulk typing burns premium tokens that a free model could handle. Your paid assistant writes a brief that names the target files and the exact change. delegate-edit hands it to the first lane in your list. The model edits and returns a diff. You review it before anything counts as done. One lane list serves both: a Go plan lane scored 4 of 4 at 8 to 19 seconds per task, and the free tier, with no key, scored 4 of 4 at 18 to 44 seconds through the opencode CLI. Keep judgment on the expensive model. Let the free model type.
