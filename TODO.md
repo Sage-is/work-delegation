@@ -13,6 +13,19 @@
   - [ ] Share the provider table, lane fallback, and ledger from `delegate-agent`.
   - [x] `delegate-ask` measured first (2026-10-05, Portal's bulk-read pattern): whole-file reads over 350 lines are 0.6% of input cost, delegation would save 0.4%. Not built; re-run `make cost` if the work shifts to big codebases.
 
+- [ ] **Many delegates at once.** Direct lanes take no lock and several cheap lanes pass the matrix; the orchestrator's one-at-a-time loop is the bottleneck (RESULTS.md field notes 2026-10-14).
+  - [ ] `delegate-batch`: a manifest of `(file, brief)` pairs run concurrently, one ledger row each, one combined diff to review.
+  - [ ] Invariant check: the brief lists verbatim strings (hashes, paths, labels); the wrapper fails the run if one is missing afterwards.
+  - [ ] Best of N: one brief on two lanes in parallel; keep the diff that passes the invariant check.
+  - [ ] `delegate-review` (Non-edit verbs) as first reader of each diff; the orchestrator reads its verdict and a sample.
+  - [ ] Measure with `make cost`: wall time down, orchestrator input cost not up.
+
+- [ ] **Hook counts new text, not file size.** A `Write` over an existing file counts the whole file; a mostly copied 4.4k board tripped it (2026-10-14).
+  - [ ] Count only the characters a `Write` adds over the existing file.
+  - [ ] `DELEGATE_EXEMPT` glob for fact registers (`TODO.md` boards, hash changelogs).
+  - [ ] Deny message says trimming under the line is not a fix.
+  - [ ] House rules the delegate needs (step labels) go in `.delegate/` as a pointer.
+
 - [ ] **Phase 4, only if the matrix asks for it.** `ollama/qwen3.5:9b` scored 2/4 on 2026-09-04 with one 90s timeout.
   - [ ] A no-tools `direct` mode (named files inlined, model returns full contents) for small models.
   - [ ] NLT grid mode via `nlt-py` if `direct` is not enough.

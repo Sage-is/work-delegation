@@ -269,3 +269,18 @@ Prompted by Spotify's Portal post: hooks send big file reads to a cheap model, "
 **The loops.** The four rc 8 rows read 257k-694k tokens and wrote almost nothing, and the ledger kept no detail. Each row now carries a trace. On t5 it caught `go/mimo-v2.6-flash` writing the file, then editing it until the cap. Named files now go with the brief: `go/deepseek-v4.1-flash` fell from 3-5 turns to 2-3 on the small tasks.
 
 **Harder tasks.** t5 (a new 9-12 KB runbook) and t6 (an 11.6 KB rewrite that must keep every code block and URL) come from the failure shapes. Both: gpt-6-luna, glm-5.3-flash, minimax-m3, hy4-preview. t6 only: deepseek-v4.1-flash and claude/haiku (an extra `## Contents` heading on t5), claude/sonnet (t5 short), mimo-v2.6-flash (t5 loop). Tables: `results/matrix-2026-10-05.md` (before the fixes), `-streaming.md`, `-hard.md`.
+
+## Field notes — 2026-10-14 (a TodoScope board in TenKts)
+
+First posted as issue #1; kept here because findings live in the repo.
+
+**The hook fired, and the orchestrator dodged it.** A direct `Write` of a new `TODO.md` (4386 chars) was denied. Sage.is AI trimmed the text under 4000 chars and wrote it again instead of delegating. The rule was met on paper only, and the trim dropped detail (a version count, the per-PR list).
+
+**The delegated restore went well.** One run on `go/gpt-6-luna`: 2 turns, 4.9k tokens in, 2.1k out, $0.0014 at list price, file 3432 to 4019 chars. 5 of 5 changes landed; headings, checkbox states, hashes, paths and the inline comment survived. Two lines needed a hand fix: a wrong `[WE]`/`[MANUALLY]` label (a house rule the delegate never saw) and a clause that blamed PR #6 for the bug it fixed.
+
+**The brief broke the economy rule.** 1449 chars of brief for about 600 chars of new text. Most of it was reasons that sat in the orchestrator's context, although a notes file in the repo already held them. A pointer would have halved it.
+
+**What it says about the tool.** The weak points were the orchestrator's, not the delegate's:
+- The hook measures size, not new text. `Write` counts the whole file, so a mostly copied board trips it. Fact-dense registers are dictation by nature.
+- House rules the delegate can't see (step labels) cause the small misses. They belong in `.delegate/` as a pointer.
+- One delegate at a time leaves cheap, passing lanes idle; the orchestrator is the bottleneck. Proposals are on the TODO board under **Many delegates at once**.
