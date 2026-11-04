@@ -73,8 +73,9 @@ install-bin: guard-no-name-kills
 	@echo "OK: $(BIN_DIR)/delegate-edit"
 
 install-claude: guard-no-name-kills
-	@mkdir -p $(CLAUDE_SKILL_DIR)/scripts
+	@mkdir -p $(CLAUDE_SKILL_DIR)/scripts $(CLAUDE_SKILL_DIR)/references
 	install -m 0644 skill/SKILL.md $(CLAUDE_SKILL_DIR)/SKILL.md
+	install -m 0644 skill/references/*.md $(CLAUDE_SKILL_DIR)/references/
 	install -m 0755 skill/scripts/delegate-edit $(CLAUDE_SKILL_DIR)/scripts/delegate-edit
 	install -m 0755 skill/scripts/delegate-agent $(CLAUDE_SKILL_DIR)/scripts/delegate-agent
 	install -m 0755 skill/scripts/delegate-stall-verdict $(CLAUDE_SKILL_DIR)/scripts/delegate-stall-verdict
@@ -96,9 +97,10 @@ install-opencode:
 # ~/.pi/agent/skills, so it gets the /delegate-edit command and the same skill
 # directory Claude Code gets. Installed whether or not pi is present yet.
 install-pi: guard-no-name-kills
-	@mkdir -p $(PI_PROMPT_DIR) $(PI_SKILL_DIR)/scripts
+	@mkdir -p $(PI_PROMPT_DIR) $(PI_SKILL_DIR)/scripts $(PI_SKILL_DIR)/references
 	install -m 0644 harness/pi/delegate-edit.md $(PI_PROMPT_DIR)/delegate-edit.md
 	install -m 0644 skill/SKILL.md $(PI_SKILL_DIR)/SKILL.md
+	install -m 0644 skill/references/*.md $(PI_SKILL_DIR)/references/
 	install -m 0755 skill/scripts/delegate-edit $(PI_SKILL_DIR)/scripts/delegate-edit
 	install -m 0755 skill/scripts/delegate-agent $(PI_SKILL_DIR)/scripts/delegate-agent
 	@echo "OK: $(PI_PROMPT_DIR)/delegate-edit.md and $(PI_SKILL_DIR)"
